@@ -74,11 +74,17 @@ function(BaseRpn2nfa) {
 
       '@extend': BaseRpn2nfa,
 
-		on_create: function(definition, name, rpn) {
+		'@type': 'class',
 
-			var index = definition.tokenIndex;
+		tokens: null,
 
-			var list = definition.tokens;
+		tokenIndex: null,
+
+		on_create: function(name, rpn) {
+
+			var index = this.tokenIndex;
+
+			var list = this.tokens;
 
 			var access = ':' + name;
 
@@ -90,16 +96,13 @@ function(BaseRpn2nfa) {
 
 			}
 
-			// recreate new state names
-         definition.new_states = [];
-
 			this.$super(arguments);
 
 		},
 
-		on_create_state: function(definition) {
+		create_state: function() {
 
-			var states = definition.states;
+			var states = this.states;
 
 			var state = this.$super(arguments);
 
@@ -116,19 +119,65 @@ function(BaseRpn2nfa) {
 
 		},
 
-		prepare_definitions: function(definition) {
+		on_import: function(definition) {
+
+			var J = $;
+
+			var tokens = definition.tokens;
+
+			var tokenIndex = definition.tokenIndex;
+
+			var targetTokens = this.tokens;
 
 			this.$super(arguments);
 
-			definition.tokens = [];
+			if (tokens instanceof Array) {
 
-			definition.tokenIndex = {};
+				targetTokens.push.apply(targetTokens, tokens);
+
+			}
+
+			if (J.is_object(tokenIndex)) {
+
+				J.assign(this.tokenIndex, tokenIndex);
+
+			}
 
 		},
 
-      create_symbol_from_lexeme: function(definition, lexeme) {
+		on_export: function(definition) {
 
-         var symbols = definition.symbols;
+			this.$super(arguments);
+
+			definition.tokens = this.tokens.slice(0);
+
+			definition.tokenIndex = $.assign({}, this.tokenIndex);
+
+		},
+
+		on_reset: function() {
+
+			this.$super(arguments);
+
+			delete this.tokens;
+
+			delete this.tokenIndex;
+
+		},
+
+		prepare: function() {
+
+			this.$super(arguments);
+
+			this.tokens = [];
+
+			this.tokenIndex = {};
+
+		},
+
+      create_symbol_from_lexeme: function(lexeme) {
+
+         var symbols = this.symbols;
 
          var type = lexeme.type;
 

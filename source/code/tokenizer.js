@@ -3,14 +3,11 @@
 Jx('code/tokenizer',
 
    // requires
-   'code/regex/parser',
    'code/regex/rpn2nfa',
 
-function(RegParser, generator) {
+function(Generator) {
 
 	var $ = Jx;
-
-	var reg_parser = new RegParser();
 
 	return {
 
@@ -28,13 +25,15 @@ function(RegParser, generator) {
 
 		ended: true,
 
-		generator: generator,
+		generator: null,
 
 		definition_processed: false,
 
-		constructor: function(definitions) {
+		constructor: function() {
 
-			if (definitions) {
+			this.generator = this.create_generator();
+
+			if (arguments.length) {
 
 				this.define.apply(this, arguments);
 
@@ -42,59 +41,40 @@ function(RegParser, generator) {
 
 		},
 
-		process_definitions: function(args) {
+		define: function() {
 
-			var definitions = {};
-
-			var index = {};
+			var definition_arguments = [];
 
 			var dl = 0;
 
-			var matches = null;
+			var l, c, arg;
 
-			var generator = this.generator;
+			// process definition
+			for (c = -1, l = arguments.length; l--;) {
 
-			var c, l, regex, arg;
+				arg = arguments[++c];
 
-			for (c = -1, l = args.length; l--;) {
+				if (arg && !$.is_object(arg)) {
 
-				arg = args[++c];
-
-				if (arg && typeof arg == 'string') {
-
-					name = arg;
-
-				} else if (name && arg instanceof RegExp) {
-
-					generator.create(definitions, name, reg_parser.parse(arg));
+					definition_arguments[dl++] = arg;
 
 				}
 
 			}
 
-			console.log(definitions);
+			if (dl) {
 
-			return definitions;
-
-		},
-
-		define: function(definitions) {
-
-			// define states from tokens
-			if (typeof definitions == 'string') {
-
-				definitions = this.process_definitions(arguments);
-
-			// directly apply definitions
-			} else if (!$.is_object(definitions)) {
-
-				definitions = null;
+				this.generator.define(definition_arguments);
 
 			}
 
-			this.definition = definitions;
-
 			this.reset();
+
+		},
+
+		create_generator: function() {
+
+			return new Generator();
 
 		},
 
@@ -114,7 +94,7 @@ function(RegParser, generator) {
 
 			this.error_index = -1;
 
-			if (this.subject && $.is_object(this.definition)) {
+			if (this.subject && $.is_object(this.generator)) {
 
 				this.anchor = 0;
 
@@ -136,7 +116,7 @@ function(RegParser, generator) {
 
 			var anchor = this.anchor;
 
-			var def = this.definition;
+			var def = this.generator;
 
 			var ended = this.ended;
 
@@ -284,7 +264,7 @@ function(RegParser, generator) {
 
 		symbol_match: function(symbol, input) {
 
-			var symbols = this.definition.symbols;
+			var symbols = this.generator.symbols;
 
 			var charset, found;
 

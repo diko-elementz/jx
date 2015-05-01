@@ -8,28 +8,24 @@ Jx('code/config/state', function() {
 
 		pointers: null,
 
-		definition: null,
-
 		generator: null,
 
-      constructor: function (generator, definition, name, list) {
+      constructor: function (generator, name, list) {
 
-         var states = definition.states;
+         var states = generator.states;
 
-         var new_states = definition.new_states;
+         var new_states = generator.new_states;
 
-         name = name || ':' + (++definition.state_id_seed);
+         name = name || ':' + (++generator.state_id_seed);
 
          // new state name
          new_states[new_states.length] = this;
 
-         list = list || generator.on_create_list(definition);
+         list = list || generator.create_list();
 
          list.state = this;
 
          this.name = name;
-
-         this.definition = definition;
 
          this.pointers = list;
 
@@ -53,8 +49,7 @@ Jx('code/config/state', function() {
 			}
 
 			// create parent fragment
-			fragment = this.generator.on_create_fragment(
-													this.definition,
+			fragment = this.generator.create_fragment(
 													left.incoming,
 													right.outgoing
 												);
