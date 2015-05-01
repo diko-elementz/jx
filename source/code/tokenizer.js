@@ -3,7 +3,7 @@
 Jx('code/tokenizer',
 
    // requires
-   'code/regex/rpn2nfa',
+   'code/regex/token_generator',
 
 function(Generator) {
 
@@ -47,6 +47,10 @@ function(Generator) {
 
 			var dl = 0;
 
+			var definition = null;
+
+			var generator = this.generator;
+
 			var l, c, arg;
 
 			// process definition
@@ -54,17 +58,33 @@ function(Generator) {
 
 				arg = arguments[++c];
 
-				if (arg && !$.is_object(arg)) {
+				if (arg || arg == 0) {
 
-					definition_arguments[dl++] = arg;
+					if ($.is_object(arg)) {
+
+						definition = arg;
+
+					} else {
+
+						definition_arguments[dl++] = arg;
+
+					}
 
 				}
 
 			}
 
-			if (dl) {
+			if (generator) {
 
-				this.generator.define(definition_arguments);
+				if (dl) {
+
+					generator.define(definition_arguments);
+
+				} else if (definition) {
+
+					generator.define(definition);
+
+				}
 
 			}
 
@@ -128,7 +148,7 @@ function(Generator) {
 
 			var accept_index, accept_token;
 
-			if (!ended) {
+			if (!ended && def && def.prepared) {
 
 				states = def.states;
 

@@ -1,6 +1,6 @@
 "use strict";
 
-Jx('code/regex/rpn2nfa',
+Jx('code/regex/token_generator',
 
    // requires
    'code/config/state/generator',
