@@ -41,9 +41,12 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 			var osl = 0;
 
-			var c, l, lexeme;
+			var c, l, lexeme, capture, next_capture;
 
 			var state, symbol, fragment, left, right;
+
+			// capture pointer
+			capture = null;
 
 			for (c = -1, l = rpn.length; l--;) {
 
@@ -84,9 +87,15 @@ function(RegexParser, State, Fragment, List, Pointer) {
 													right.incoming
 												);
 
-							operand_stack[osl - 1] = state.concat(left, right);
+							fragment = state.concat(left, right);
+
+							operand_stack[osl - 1] = fragment;
 
 							operand_stack.length = osl;
+
+							fragment.add_capture(left);
+
+							fragment.add_capture(right);
 
 						break;
 
@@ -102,6 +111,8 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 							operand_stack.length = osl;
 
+							left.add_capture(right);
+
 						break;
 
 					// zero or one
@@ -109,7 +120,7 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 							left = operand_stack[osl - 1];
 
-							left.add_split(left.incoming);
+							left.add_split();
 
 						break;
 
@@ -118,9 +129,9 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 							left = operand_stack[osl - 1];
 
-							left.add_split(left.incoming);
+							left.add_split();
 
-							left.add_recurrence(left.incoming);
+							left.add_recurrence();
 
 						break;
 
@@ -129,7 +140,14 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 							left = operand_stack[osl - 1];
 
-							left.add_recurrence(left.incoming);
+							left.add_recurrence();
+
+						break;
+
+					// create capture
+					case 'group()':
+
+							operand_stack[osl - 1].set_capture();
 
 						break;
 
@@ -139,6 +157,11 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 			// create start state
 			fragment = operand_stack[--osl];
+
+			// set 0 capture
+			fragment.set_capture();
+
+			console.log('fragment: ', fragment.capture, ' for: ', rpn.signature);
 
 			operand_stack.length = osl;
 
@@ -162,7 +185,7 @@ function(RegexParser, State, Fragment, List, Pointer) {
 					fragment,
 					this.new_accept_states,
 					name
-			);
+				);
 
 		},
 
@@ -285,6 +308,24 @@ function(RegexParser, State, Fragment, List, Pointer) {
 				states[new_states[l].name] = token_name;
 
 			}
+
+		},
+
+		on_before_create: function() {
+
+			// create new states
+			this.new_states = [];
+
+			this.new_accept_states = [];
+
+		},
+
+		on_after_create: function() {
+
+			// remove new states
+			delete this.new_states;
+
+			delete this.new_accept_states;
 
 		},
 
@@ -413,18 +454,12 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 				processed[id] = name;
 
-				// create new states
-				this.new_states = [];
-
-				this.new_accept_states = [];
+				this.on_before_create();
 
 				// what's next?
 				this.on_create(name, rpn);
 
-				// remove new states
-				delete this.new_states;
-
-				delete this.new_accept_states;
+				this.on_after_create();
 
 			} else if (id) {
 

@@ -12,6 +12,10 @@ Jx("code/config/fragment", function() {
 
 		point_back: null,
 
+		capture: null,
+
+		is_captured: false,
+
       constructor: function(incoming, outgoing) {
 
          var l, p;
@@ -36,7 +40,9 @@ Jx("code/config/fragment", function() {
 
       },
 
-		add_split: function(list) {
+		add_split: function() {
+
+			var list = this.incoming;
 
 			var slist = this.split_list;
 
@@ -52,7 +58,9 @@ Jx("code/config/fragment", function() {
 
 		},
 
-		add_recurrence: function(list) {
+		add_recurrence: function() {
+
+			var list = this.incoming;
 
 			var slist = this.point_back;
 
@@ -65,8 +73,6 @@ Jx("code/config/fragment", function() {
 				this.point_back = [ list ];
 
 			}
-
-
 
 		},
 
@@ -243,6 +249,48 @@ Jx("code/config/fragment", function() {
 				}
 
 			}
+
+		},
+
+		set_capture: function() {
+
+			if (!this.is_captured) {
+
+				this.is_captured = true;
+
+				this.capture = {
+
+					fragment: this,
+
+					next: this.capture
+
+				};
+
+			}
+
+			return this;
+
+		},
+
+		add_capture: function(fragment) {
+
+			var current = this.capture;
+
+			var to_add = fragment.capture;
+
+			if (current) {
+
+				for(; current.next; current = current.next);
+
+				current.next = to_add;
+
+			} else {
+
+				this.capture = to_add;
+
+			}
+
+			return this;
 
 		}
 

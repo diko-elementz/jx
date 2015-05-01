@@ -5,7 +5,7 @@ Jx('code/regex/token_generator',
    // requires
    'code/config/state/generator',
 
-function(BaseRpn2nfa) {
+function(Generator) {
 
    function create_character_set(lexeme) {
 
@@ -72,7 +72,7 @@ function(BaseRpn2nfa) {
 
    return {
 
-      '@extend': BaseRpn2nfa,
+      '@extend': Generator,
 
 		'@type': 'class',
 

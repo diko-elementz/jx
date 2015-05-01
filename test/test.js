@@ -46,6 +46,9 @@ Jx('test',
    window.t = tokenizer;
 
 
+	window.parser = new Parser();
+
+
 
 
 
