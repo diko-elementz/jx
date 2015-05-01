@@ -23,6 +23,8 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 		processed: null,
 
+		token_patterns: null,
+
 		states: null,
 
 		symbols: null,
@@ -32,6 +34,22 @@ function(RegexParser, State, Fragment, List, Pointer) {
 		accept_symbols: null,
 
 		state_id_seed: 0,
+
+		start_capture_flags: null,
+
+		end_capture_flags: null,
+
+		capture_flags: null,
+
+		definition_names: ['states',
+										'symbols',
+										'accept_states',
+										'processed',
+										'token_patterns',
+										'start_capture_flags',
+										'end_capture_flags',
+										'capture_flags'
+									],
 
 		on_create: function(name, rpn) {
 
@@ -93,9 +111,7 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 							operand_stack.length = osl;
 
-							fragment.add_capture(left);
-
-							fragment.add_capture(right);
+							fragment.add_capture(left, right);
 
 						break;
 
@@ -147,7 +163,9 @@ function(RegexParser, State, Fragment, List, Pointer) {
 					// create capture
 					case 'group()':
 
-							operand_stack[osl - 1].set_capture();
+							left = operand_stack[osl - 1];
+
+							operand_stack[osl - 1] = left.set_capture();
 
 						break;
 
@@ -159,7 +177,7 @@ function(RegexParser, State, Fragment, List, Pointer) {
 			fragment = operand_stack[--osl];
 
 			// set 0 capture
-			fragment.set_capture();
+			fragment = fragment.set_capture();
 
 			console.log('fragment: ', fragment.capture, ' for: ', rpn.signature);
 
@@ -186,6 +204,24 @@ function(RegexParser, State, Fragment, List, Pointer) {
 					this.new_accept_states,
 					name
 				);
+
+		},
+
+		on_before_create: function() {
+
+			// create new states
+			this.new_states = [];
+
+			this.new_accept_states = [];
+
+		},
+
+		on_after_create: function() {
+
+			// remove new states
+			delete this.new_states;
+
+			delete this.new_accept_states;
 
 		},
 
@@ -301,7 +337,72 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 			var states = this.accept_states;
 
-			var l;
+			var start_flags = this.start_capture_flags;
+
+			var end_flags = this.end_capture_flags;
+
+			var capture_flags = this.capture_flags;
+
+			var pattern_id = token_name + this.token_patterns[token_name];
+
+			var index = 0;
+
+			var c, l, flags, p, frag, state, start_state, end_state, list, outgoing, pointer, pointers;
+
+			var start_flag, end_flag;
+
+			// create capture flags
+			if (!(token_name in capture_flags)) {
+
+				capture_flags[token_name] = {};
+
+			}
+
+			//flags = capture_flags[token_name];
+
+			//for (p = fragment.capture; p; p = p.next) {
+			//
+			//	frag = p.fragment;
+			//
+			//	// set start capture
+			//	state = frag.incoming.state;
+			//
+			//	start_state = state.name;
+			//
+			//	pointers = state.pointers;
+			//
+			//	pointer = pointers.pointer;
+			//
+			//	for (; pointer; pointer = pointer.next) {
+			//
+			//		start_flag = start_state + ':' + pointer.symbol;
+			//
+			//		if (!(start_flag in start_flags)) {
+			//
+			//			start_flags[start_flag] = true;
+			//
+			//		}
+			//
+			//	}
+			//
+			//	// set end capture
+			//	outgoing = frag.outgoing;
+			//
+			//	for (c = -1, l = outgoing.length; l--;) {
+			//
+			//		pointer = outgoing[++c];
+			//
+			//		list = pointer.point_to_list;
+			//
+			//		end_state = list.state.name;
+			//
+			//
+			//	}
+			//
+			//	index++;
+			//
+			//}
+
 
 			for (l = new_states.length; l--;) {
 
@@ -311,69 +412,31 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 		},
 
-		on_before_create: function() {
-
-			// create new states
-			this.new_states = [];
-
-			this.new_accept_states = [];
-
-		},
-
-		on_after_create: function() {
-
-			// remove new states
-			delete this.new_states;
-
-			delete this.new_accept_states;
-
-		},
-
 		on_export: function(definition) {
 
-			var J = $;
-
-			J.assign(definition.states, this.states);
-
-			J.assign(definition.accept_states, this.accept_states);
-
-			J.assign(definition.symbols, this.symbols);
+			this.apply_obj_definitions(this, definition);
 
 		},
 
 		on_import: function(definition) {
 
-			var J = $;
-
 			var seed = definition.state_id_seed;
 
 			var start = definition.start_state;
 
-			var obj_names = ['states', 'symbols', 'accept_states', 'processed'];
+			this.apply_obj_definitions(definition, this);
 
-			var name, obj, c, l;
+			this.state_id_seed = seed || 0;
 
-			for (c = -1, l = obj_names.length; l--;) {
-
-				name = obj_names[++c];
-
-				if (name in definition) {
-
-					obj = definition[name];
-
-					if (J.is_object(obj)) {
-
-						J.assign(this[name], obj);
-
-					}
-
-				}
-
-			}
+			this.start_state = start_state || "start_state";
 
 		},
 
 		on_reset: function() {
+
+			var names = this.definition_names;
+
+			var name, l;
 
 			delete this.prepared;
 
@@ -381,13 +444,12 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 			delete this.state_id_seed;
 
-			delete this.processed;
+			// delete flags
+			for (l = names.length; l--;) {
 
-			delete this.states;
+				delete this[names[l]];
 
-			delete this.symbols;
-
-			delete this.accept_states;
+			}
 
 		},
 
@@ -438,7 +500,7 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 			var signature = rpn.signature;
 
-			var processed, id;
+			var processed, patterns, id;
 
 			if (!this.prepared) {
 
@@ -448,11 +510,23 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 			processed = this.processed;
 
+			patterns = this.token_patterns;
+
 			id = signature ? name + ':' + signature : void(0);
 
 			if (id && !(id in processed)) {
 
 				processed[id] = name;
+
+				if (!patterns.hasOwnProperty(name)) {
+
+					patterns[name] = 0;
+
+				} else {
+
+					patterns[name]++;
+
+				}
 
 				this.on_before_create();
 
@@ -529,17 +603,47 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 			this.prepared = true;
 
-			this.processed = {};
-
-			this.states = {};
-
-			this.symbols = {};
-
-			this.accept_states = {};
+			this.apply_obj_definitions({}, this);
 
 			return this;
 
       },
+
+		apply_obj_definitions: function(source, target) {
+
+			var J = $;
+
+			var names = this.definition_names;
+
+			var name, obj, t_obj, c, l, is_object;
+
+			for (c = -1, l = names.length; l--;) {
+
+				name = names[++c];
+
+				t_obj = name in target ? target[name] : null;
+
+				if (!t_obj || !J.is_object(t_obj)) {
+
+					target[name] = t_obj = {};
+
+				}
+
+				if (name in source) {
+
+					obj = source[name];
+
+					if (J.is_object(obj)) {
+
+						J.assign(t_obj, obj);
+
+					}
+
+				}
+
+			}
+
+		},
 
       export_definition: function() {
 
@@ -551,11 +655,7 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 						start_state: this.start_state,
 
-						state_id_seed: this.state_id_seed,
-
-						symbols: {},
-
-						accept_states: {}
+						state_id_seed: this.state_id_seed
 
 					};
 

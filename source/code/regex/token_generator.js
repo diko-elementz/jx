@@ -76,6 +76,12 @@ function(Generator) {
 
 		'@type': 'class',
 
+		definition_names: ['tokenIndex'].concat(
+
+										Generator.prototype.definition_names
+
+									),
+
 		tokens: null,
 
 		tokenIndex: null,
@@ -151,8 +157,6 @@ function(Generator) {
 
 			definition.tokens = this.tokens.slice(0);
 
-			definition.tokenIndex = $.assign({}, this.tokenIndex);
-
 		},
 
 		on_reset: function() {
@@ -170,8 +174,6 @@ function(Generator) {
 			this.$super(arguments);
 
 			this.tokens = [];
-
-			this.tokenIndex = {};
 
 		},
 

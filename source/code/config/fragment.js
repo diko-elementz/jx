@@ -254,39 +254,46 @@ Jx("code/config/fragment", function() {
 
 		set_capture: function() {
 
-			if (!this.is_captured) {
+			var fragment = new this.constructor(this.incoming, this.outgoing);
 
-				this.is_captured = true;
+			fragment.capture = {
 
-				this.capture = {
+				fragment: fragment,
 
-					fragment: this,
-
-					next: this.capture
-
-				};
+				next: null
 
 			}
 
-			return this;
+			fragment.add_capture(this);
+
+			// clone
+			return fragment;
 
 		},
 
-		add_capture: function(fragment) {
+		add_capture: function() {
 
 			var current = this.capture;
 
-			var to_add = fragment.capture;
+			var fragment, p, c, l, to_add;
 
-			if (current) {
+			for (c = -1, l = arguments.length; l--;) {
 
-				for(; current.next; current = current.next);
+				fragment = arguments[++c];
 
-				current.next = to_add;
+				to_add = fragment.capture;
 
-			} else {
+				if (current) {
 
-				this.capture = to_add;
+					for(; current.next; current = current.next);
+
+					current.next = to_add;
+
+				} else {
+
+					this.capture = current = to_add;
+
+				}
 
 			}
 
