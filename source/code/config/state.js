@@ -37,35 +37,25 @@ Jx('code/config/state', function() {
 
       concat: function(left, right) {
 
-			var fragment;
+			var fragment = left.clone();
 
-			left.point(this);
+			var split = right.split_list;
+
+			var back = right.point_back;
+
+			fragment.point(this);
 
 			// apply split list
-			if (left.split_list) {
+			fragment.apply_split(right);
 
-				left.apply_split(right);
+			// concatenate right
+			fragment.outgoing = right.outgoing.slice(0);
 
-			}
+			fragment.split_list = split && split.slice(0);
 
-			// create parent fragment
-			fragment = this.generator.create_fragment(
-													left.incoming,
-													right.outgoing
-												);
+			fragment.point_back = back && back.slice(0);
 
-			// inherit split list
-			if (right.split_list) {
-
-				fragment.split_list = right.split_list;
-
-			}
-
-			if (right.point_back) {
-
-				fragment.point_back = right.point_back;
-
-			}
+			fragment.add_capture(right);
 
 			return fragment;
 

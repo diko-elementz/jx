@@ -14,6 +14,8 @@ Jx("code/config/list", function() {
 
             this.pointer = pointer;
 
+				pointer.from_list = this;
+
          }
 
       }

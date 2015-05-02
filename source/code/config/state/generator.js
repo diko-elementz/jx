@@ -111,8 +111,6 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 							operand_stack.length = osl;
 
-							fragment.add_capture(left, right);
-
 						break;
 
 					// alternative
@@ -123,11 +121,9 @@ function(RegexParser, State, Fragment, List, Pointer) {
 							left = operand_stack[osl - 1];
 
 							// combine left/right incoming
-							left.combine(right);
+							operand_stack[osl - 1] = left.combine(right);
 
 							operand_stack.length = osl;
-
-							left.add_capture(right);
 
 						break;
 
@@ -136,7 +132,7 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 							left = operand_stack[osl - 1];
 
-							left.add_split();
+							operand_stack[osl - 1] = left.add_split(true);
 
 						break;
 
@@ -145,9 +141,7 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 							left = operand_stack[osl - 1];
 
-							left.add_split();
-
-							left.add_recurrence();
+							operand_stack[osl - 1] = left.add_split().add_recurrence(true);
 
 						break;
 
@@ -156,7 +150,7 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 							left = operand_stack[osl - 1];
 
-							left.add_recurrence();
+							operand_stack[osl - 1] = left.add_recurrence(true);
 
 						break;
 
@@ -174,12 +168,7 @@ function(RegexParser, State, Fragment, List, Pointer) {
 			}
 
 			// create start state
-			fragment = operand_stack[--osl];
-
-			// set 0 capture
-			fragment = fragment.set_capture();
-
-			console.log('fragment: ', fragment.capture, ' for: ', rpn.signature);
+			fragment = operand_stack[--osl].set_capture();
 
 			operand_stack.length = osl;
 
@@ -347,61 +336,11 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 			var index = 0;
 
-			var c, l, flags, p, frag, state, start_state, end_state, list, outgoing, pointer, pointers;
+			var c, l;
 
 			var start_flag, end_flag;
 
-			// create capture flags
-			if (!(token_name in capture_flags)) {
-
-				capture_flags[token_name] = {};
-
-			}
-
-			//flags = capture_flags[token_name];
-
-			//for (p = fragment.capture; p; p = p.next) {
-			//
-			//	frag = p.fragment;
-			//
-			//	// set start capture
-			//	state = frag.incoming.state;
-			//
-			//	start_state = state.name;
-			//
-			//	pointers = state.pointers;
-			//
-			//	pointer = pointers.pointer;
-			//
-			//	for (; pointer; pointer = pointer.next) {
-			//
-			//		start_flag = start_state + ':' + pointer.symbol;
-			//
-			//		if (!(start_flag in start_flags)) {
-			//
-			//			start_flags[start_flag] = true;
-			//
-			//		}
-			//
-			//	}
-			//
-			//	// set end capture
-			//	outgoing = frag.outgoing;
-			//
-			//	for (c = -1, l = outgoing.length; l--;) {
-			//
-			//		pointer = outgoing[++c];
-			//
-			//		list = pointer.point_to_list;
-			//
-			//		end_state = list.state.name;
-			//
-			//
-			//	}
-			//
-			//	index++;
-			//
-			//}
+			console.log('capture: ', fragment.capture);
 
 
 			for (l = new_states.length; l--;) {

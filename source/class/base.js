@@ -490,6 +490,20 @@ Jx('class/base', function() {
 
       subclass_of: is_subclass_of,
 
+		clone: function(obj) {
+
+			if ($.is_object(obj)) {
+
+				empty.prototype = obj;
+
+				return new empty();
+
+			}
+
+			return void(0);
+
+		},
+
       instantiate: function(Class, args) {
 
          var instance;

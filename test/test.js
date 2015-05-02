@@ -32,7 +32,7 @@ Jx('test',
                         //"a_to_c", /[a-c]+/,
                         //"d_to_e", /[d-e]+/,
 								"capture",
-									/a(b)+c/
+									/a(b+)c/
 //                        "string",
 //                           /\"([^\"]|\\\")+\"x/,
 //									/\"([^\"]|\\\")+\"/,
@@ -43,7 +43,7 @@ Jx('test',
                      );
 
    //tokenizer.set_subject('"abcs\\"de"aba');
-	tokenizer.set_subject('ab');
+	tokenizer.set_subject('abc');
 
    window.t = tokenizer;
 

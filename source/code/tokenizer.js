@@ -150,6 +150,8 @@ function(Generator) {
 
 			if (!ended && def && def.prepared) {
 
+				console.log('matching!')
+
 				states = def.states;
 
 				state = def.start_state;
@@ -186,6 +188,8 @@ function(Generator) {
 						if (symbol == chr || this.symbol_match(symbol, chr)) {
 
 							found_state = match[1];
+
+							console.log('found match ', symbol, ' state: ', found_state)
 
 							if (matched_state) {
 

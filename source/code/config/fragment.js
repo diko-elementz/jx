@@ -1,4 +1,9 @@
-Jx("code/config/fragment", function() {
+Jx("code/config/fragment",
+
+	// requires
+	"class/base",
+
+function(Class) {
 
    return {
 
@@ -40,29 +45,41 @@ Jx("code/config/fragment", function() {
 
       },
 
-		add_split: function() {
+		clone: function() {
 
-			var list = this.incoming;
+			var clone = Class.clone(this);
 
-			var slist = this.split_list;
+			var source, target;
 
-			if (slist) {
+			var split = this.split_list;
 
-				slist[slist.length] = list;
+			var back = this.point_back;
 
-			} else {
+			if (split) {
 
-				this.split_list = [ list ];
+				clone.split_list = split.slice(0);
 
 			}
+
+			if (back) {
+
+				clone.point_back = back.slice(0);
+
+			}
+
+			clone.outgoing = this.outgoing.slice(0);
+
+			return clone;
 
 		},
 
-		add_recurrence: function() {
+		add_split: function(recreate) {
 
-			var list = this.incoming;
+			var clone = recreate ? this.clone() : this;
 
-			var slist = this.point_back;
+			var list = clone.incoming;
+
+			var slist = clone.split_list;
 
 			if (slist) {
 
@@ -70,9 +87,33 @@ Jx("code/config/fragment", function() {
 
 			} else {
 
-				this.point_back = [ list ];
+				clone.split_list = [ list ];
 
 			}
+
+			return clone;
+
+		},
+
+		add_recurrence: function(recreate) {
+
+			var clone = recreate ? this.clone() : this;
+
+			var list = clone.incoming;
+
+			var slist = clone.point_back;
+
+			if (slist) {
+
+				slist[slist.length] = list;
+
+			} else {
+
+				clone.point_back = [ list ];
+
+			}
+
+			return clone;
 
 		},
 
@@ -143,67 +184,67 @@ Jx("code/config/fragment", function() {
 
 			}
 
+			//console.log('after current pointback ', this.point_back && 'point_back' in this.point_back);
+
 		},
 
 		combine: function(fragment) {
 
-			var me_incoming = this.incoming;
+			var clone = this.clone();
 
-			var target_incoming = fragment.incoming;
-
-			var me_split = this.split_list;
-
-			var target_split = fragment.split_list;
-
-			var me_point_back = this.point_back;
-
-			var target_point_back = fragment.point_back;
-
-			var me_outgoing = this.outgoing;
-
-			var target_outgoing = fragment.outgoing;
-
-			var p, t, new_split;
-
-			// go to last list
-			for (p = me_incoming.pointer; p.next; p = p.next);
-
-			p.next = target_incoming.pointer;
+			var p, source, target;
 
 			// combine incoming
-			target_incoming.pointer = me_incoming.pointer;
+			for (p = clone.incoming.pointer; p.next; p = p.next);
+
+			p.next = fragment.incoming.pointer;
 
 			// combine split
-			if (me_split && target_split) {
+			source = fragment.split_list;
 
-				me_split.push.apply(me_split, target_split);
+			if (source) {
 
-			} else if (target_split) {
+				target = clone.split_list;
 
-				me_split = this.split_list = target_split;
+				if (target) {
+
+					target.push.apply(target, source);
+
+				} else {
+
+					clone.split_list = source.slice(0);
+
+				}
 
 			}
-
-			fragment.split_list = me_split;
 
 			// combine point back
-			if (me_point_back && target_point_back) {
+			source = fragment.point_back;
 
-				me_point_back.push.apply(me_point_back, target_point_back);
+			if (source) {
 
-			} else if (target_point_back) {
+				target = clone.point_back;
 
-				me_point_back = this.point_back = target_point_back;
+				if (target) {
+
+					target.push.apply(target, source);
+
+				} else {
+
+					clone.point_back = source.slice(0);
+
+				}
 
 			}
 
-			fragment.split_point_back = me_point_back;
-
 			// combine outgoing
-			me_outgoing.push.apply(me_outgoing, target_outgoing);
+			target = clone.outgoing;
 
-			fragment.outgoing = me_outgoing;
+			target.push.apply(target, fragment.outgoing);
 
+			clone.add_capture(fragment);
+
+			return clone;
 
 		},
 
@@ -254,7 +295,7 @@ Jx("code/config/fragment", function() {
 
 		set_capture: function() {
 
-			var fragment = new this.constructor(this.incoming, this.outgoing);
+			var fragment = this.clone();
 
 			fragment.capture = {
 
