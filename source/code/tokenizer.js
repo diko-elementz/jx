@@ -150,8 +150,6 @@ function(Generator) {
 
 			if (!ended && def && def.prepared) {
 
-				console.log('matching!')
-
 				states = def.states;
 
 				state = def.start_state;
@@ -179,7 +177,7 @@ function(Generator) {
 
 					edge = c > accept_index;
 
-					for (ml = matchers.length; ml--;) {
+					for (ml = matchers ? matchers.length : 0; ml--;) {
 
 						match = matchers[ml];
 
@@ -189,7 +187,7 @@ function(Generator) {
 
 							found_state = match[1];
 
-							console.log('found match ', symbol, ' state: ', found_state)
+							//console.log('found match ', symbol, ' state: ', found_state)
 
 							if (matched_state) {
 

@@ -106,24 +106,24 @@ function(Generator) {
 
 		},
 
-		create_state: function() {
-
-			var states = this.states;
-
-			var state = this.$super(arguments);
-
-			var name = state.name;
-
-			// directly register state
-			if (!(name in states)) {
-
-				states[name] = [];
-
-			}
-
-			return state;
-
-		},
+		//create_state: function() {
+		//
+		//	var states = this.states;
+		//
+		//	var state = this.$super(arguments);
+		//
+		//	var name = state.name;
+		//
+		//	// directly register state
+		//	if (!(name in states)) {
+		//
+		//		states[name] = [];
+		//
+		//	}
+		//
+		//	return state;
+		//
+		//},
 
 		on_import: function(definition) {
 

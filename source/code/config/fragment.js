@@ -2,12 +2,15 @@ Jx("code/config/fragment",
 
 	// requires
 	"class/base",
+	"code/config/list",
 
-function(Class) {
+function(Class, List) {
 
    return {
 
       '@type': 'class',
+
+		generator: null,
 
       incoming: null,
 
@@ -15,332 +18,279 @@ function(Class) {
 
 		split_list: null,
 
-		point_back: null,
+		capture_list: null,
 
-		capture: null,
+		next: null,
 
-		is_captured: false,
+      constructor: function(generator, incoming, outgoing) {
 
-      constructor: function(incoming, outgoing) {
+			this.generator = generator;
 
-         var l, p;
+			this.incoming = incoming || generator.create_list();
 
-         this.incoming = incoming;
-
-         if (!outgoing) {
-
-            outgoing = [];
-
-            l = 0;
-
-            for (p = incoming.pointer; p; p = p.next) {
-
-               outgoing[l++] = p;
-
-            }
-
-         }
-
-         this.outgoing = outgoing;
+			this.outgoing = outgoing || generator.create_list();
 
       },
 
-		clone: function() {
+		clone: function(incoming, outgoing, split) {
 
-			var clone = Class.clone(this);
+			var generator = this.generator;
 
-			var source, target;
+			var fragment = generator.create_fragment();
 
-			var split = this.split_list;
+			this.combine_list(
+					fragment.incoming,
+					incoming || this.incoming,
+					false
+				);
 
-			var back = this.point_back;
+			this.combine_list(
+					fragment.outgoing,
+					outgoing || this.outgoing,
+					false
+				);
+
+			split = split || this.split_list;
 
 			if (split) {
 
-				clone.split_list = split.slice(0);
+				fragment.split_list = split;
 
 			}
 
-			if (back) {
+			fragment.capture_list = this.capture_list;
 
-				clone.point_back = back.slice(0);
-
-			}
-
-			clone.outgoing = this.outgoing.slice(0);
-
-			return clone;
+			return fragment;
 
 		},
 
-		add_split: function(recreate) {
+		concat: function(right) {
 
-			var clone = recreate ? this.clone() : this;
+			var generator = this.generator;
 
-			var list = clone.incoming;
-
-			var slist = clone.split_list;
-
-			if (slist) {
-
-				slist[slist.length] = list;
-
-			} else {
-
-				clone.split_list = [ list ];
-
-			}
-
-			return clone;
-
-		},
-
-		add_recurrence: function(recreate) {
-
-			var clone = recreate ? this.clone() : this;
-
-			var list = clone.incoming;
-
-			var slist = clone.point_back;
-
-			if (slist) {
-
-				slist[slist.length] = list;
-
-			} else {
-
-				clone.point_back = [ list ];
-
-			}
-
-			return clone;
-
-		},
-
-		point: function(state) {
+			var right_incoming = right.incoming;
 
 			var outgoing = this.outgoing;
 
-			var incoming = this.incoming;
+			var split = this.split_list;
 
-			var point_back_list = this.point_back;
+			var fragment = this.clone(null, right.outgoing);
 
-			var target_list = state.pointers;
+			// apply split list
+			if (split) {
 
-			var l = outgoing.length;
-
-			var p, c, point_back_incoming, pointer, tp;
-
-			for (c = -1; l--;) {
-
-				p = outgoing[++c];
-
-				if (!p.point_to_list) {
-
-					p.point_to_list = target_list;
-
-				}
+				split.clone_pointers_from(generator, right_incoming, null);
 
 			}
 
-			if (point_back_list) {
+			// inherit split
+			fragment.split_list = right.split_list || null;
 
-				// point back list
-				l = point_back_list.length;
+			// combine list with state
+			this.combine_list(outgoing, right_incoming, true);
 
-				// goto end of list
-				for (tp = target_list.pointer;
-					  tp && tp.next;
-					  tp = tp.next);
+			// concat capture list
+			this.join_capture(fragment, right);
 
-				for (c = -1; l--;) {
-
-					point_back_incoming = point_back_list[++c];
-
-					p = point_back_incoming.pointer;
-
-					// append target pointers
-					for (; p; p = p.next) {
-
-						pointer = p.clone();
-
-						pointer.point_to_list = p.point_to_list;
-
-						if (tp) {
-
-							tp.next = pointer;
-
-						} else {
-
-							target_list.pointer = pointer;
-
-						}
-
-						tp = pointer;
-
-					}
-
-				}
-
-			}
-
-			//console.log('after current pointback ', this.point_back && 'point_back' in this.point_back);
+			return fragment;
 
 		},
 
-		combine: function(fragment) {
+		combine: function(right) {
 
-			var clone = this.clone();
+			var generator = this.generator;
 
-			var p, source, target;
+			var fragment = this.clone(
+											null,
+											null,
+											this.split_list || right.split_list
+										);
 
 			// combine incoming
-			for (p = clone.incoming.pointer; p.next; p = p.next);
-
-			p.next = fragment.incoming.pointer;
-
-			// combine split
-			source = fragment.split_list;
-
-			if (source) {
-
-				target = clone.split_list;
-
-				if (target) {
-
-					target.push.apply(target, source);
-
-				} else {
-
-					clone.split_list = source.slice(0);
-
-				}
-
-			}
-
-			// combine point back
-			source = fragment.point_back;
-
-			if (source) {
-
-				target = clone.point_back;
-
-				if (target) {
-
-					target.push.apply(target, source);
-
-				} else {
-
-					clone.point_back = source.slice(0);
-
-				}
-
-			}
+			this.combine_list(incoming, right.incoming, false);
 
 			// combine outgoing
-			target = clone.outgoing;
+			this.combine_list(outgoing, right.outgoing, false);
 
-			target.push.apply(target, fragment.outgoing);
+			// concatenate capture
+			this.join_capture(fragment, right);
 
-			clone.add_capture(fragment);
-
-			return clone;
+			return fragment;
 
 		},
 
-		apply_split: function(fragment) {
+		split: function() {
+
+			var generator = this.generator;
+
+			var incoming = this.incoming;
+
+			var fragment = generator.create_fragment(incoming, this.outgoing);
+
+			fragment.capture_list = this.capture_list;
+
+			incoming.append(
+
+				fragment.split_list = generator.create_list()
+
+			);
+
+			return fragment;
+
+		},
+
+		recur: function(split) {
+
+			var fragment = split ? this.split() : this.clone();
+
+			var outgoing = fragment.outgoing;
+
+			// attach recur pointers
+			outgoing.clone_pointers_from(
+					this.generator,
+					fragment.incoming,
+					outgoing
+				);
+
+			return fragment;
+
+		},
+
+		capture: function() {
+
+			var fragment = this.clone();
+
+			var current = fragment.capture_list;
+
+			if (current) {
+
+				fragment.next = current;
+
+			}
+
+			fragment.capture_list = fragment;
+
+			return fragment;
+
+		},
+
+		join_capture: function(left, right) {
+
+			var before = left.capture_list;
+
+			var after = right.capture_list;
+
+			if (after) {
+
+				if (before) {
+
+					for (; before.next; before = before.next);
+
+					before.next = after;
+
+				}
+				else {
+
+					left.capture_list = after;
+
+				}
+
+			}
+
+		},
+
+		combine_list: function(left, right, create_state) {
+
+			var left_state = left.state;
+
+			var right_state = right.state;
+
+			var state = left_state ||
+
+							right_state ||
+
+							(create_state ? this.generator.create_state() : null);
+
+
+			// resolve state if there is one
+			if (state) {
+
+				if (!right_state) {
+
+					right.apply_state(state);
+
+				}
+
+				if (!left_state) {
+
+					left.apply_state(state);
+
+				}
+
+				// finalize
+				state.list = left;
+
+			}
+
+			// append
+			left.append(right);
+
+		},
+
+		finalize: function() {
+
+			var generator = this.generator;
+
+			var fragment = this.capture();
 
 			var incoming = fragment.incoming;
 
 			var outgoing = fragment.outgoing;
 
-			var first = incoming.pointer;
+			var split = fragment.split_list;
 
-			var list = this.split_list;
+			var state;
 
-			var p, c, l, plist, pointer, ol;
+			// apply start state
+			state = incoming.state;
 
-			if (list) {
+			if (!state) {
 
-				l = list.length;
+				state = generator.create_state();
 
-				ol = outgoing.length;
-
-				for (c = -1; l--;) {
-
-					plist = list[++c].pointer;
-
-					// find last pointer
-					for (plist; plist.next; plist = plist.next);
-
-					// iterate incoming list and clone them as "split list" outgoing
-					for (p = first; p; p = p.next) {
-
-						pointer = p.clone();
-
-						plist.next = p;
-
-						plist = p;
-
-						// append to outgoing
-						outgoing[ol++] = plist;
-
-					}
-
-				}
+				incoming.apply_state(state);
 
 			}
 
-		},
+			// set start state
+			state.name = generator.start_state;
 
-		set_capture: function() {
+			// apply end state
+			state = outgoing.state;
 
-			var fragment = this.clone();
+			if (!state) {
 
-			fragment.capture = {
+				state = generator.create_state();
 
-				fragment: fragment,
-
-				next: null
+				outgoing.apply_state(state);
 
 			}
 
-			fragment.add_capture(this);
+			state.accept_state = true;
 
-			// clone
+			// set accept state to split
+			if (split) {
+
+				split.state.accept_state = true;
+
+			}
+
 			return fragment;
 
-		},
-
-		add_capture: function() {
-
-			var current = this.capture;
-
-			var fragment, p, c, l, to_add;
-
-			for (c = -1, l = arguments.length; l--;) {
-
-				fragment = arguments[++c];
-
-				to_add = fragment.capture;
-
-				if (current) {
-
-					for(; current.next; current = current.next);
-
-					current.next = to_add;
-
-				} else {
-
-					this.capture = current = to_add;
-
-				}
-
-			}
-
-			return this;
 
 		}
+
+
 
    };
 

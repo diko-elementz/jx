@@ -11,9 +11,7 @@ function(Class) {
 
       symbol: '',
 
-		from_list: null,
-
-      point_to_list: null,
+		to: null,
 
       next: null,
 
@@ -21,15 +19,8 @@ function(Class) {
 
          this.symbol = symbol;
 
-      },
-
-      clone: function() {
-
-			return Class.clone(this);
-
-         //return new this.constructor(this.symbol);
-
       }
+
 
    };
 

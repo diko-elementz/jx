@@ -59,9 +59,9 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 			var osl = 0;
 
-			var c, l, lexeme, capture, next_capture;
+			var c, l, lexeme, capture;
 
-			var state, symbol, fragment, left, right;
+			var state, symbol, fragment, left, right, accept_fragment;
 
 			// capture pointer
 			capture = null;
@@ -75,124 +75,103 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 					symbol = this.create_symbol_from_lexeme(lexeme);
 
-					operand_stack[osl++] = this.create_fragment(
+					fragment = this.create_fragment(
 
-															this.create_list(
+									this.create_list(
 
-																this.create_pointer(symbol)
+											this.create_pointer(symbol)
 
-															)
+										)
 
-														);
+								);
 
-					continue;
+					// initially point to outgoing
+					fragment.incoming.point_to(fragment.outgoing);
 
-				}
+					operand_stack[osl++] = fragment;
 
-				// apply operations
-				switch(lexeme.type) {
+				} else {
 
-					// concat
-					case '.':
+					// apply operations
+					switch(lexeme.type) {
 
-							right = operand_stack[--osl];
+						// concat
+						case '.':
 
-							left = operand_stack[osl - 1];
+								right = operand_stack[--osl];
 
-							// connect to state
-							state = this.create_state(
-													null,
-													right.incoming
-												);
+								left = operand_stack[osl - 1];
 
-							fragment = state.concat(left, right);
+								// connect to state
+								operand_stack[osl - 1] = left.concat(right);
 
-							operand_stack[osl - 1] = fragment;
+								operand_stack.length = osl;
 
-							operand_stack.length = osl;
+							break;
 
-						break;
+						// alternative
+						case '|':
 
-					// alternative
-					case '|':
+								right = operand_stack[--osl];
 
-							right = operand_stack[--osl];
+								left = operand_stack[osl - 1];
 
-							left = operand_stack[osl - 1];
+								// combine left/right incoming
+								operand_stack[osl - 1] = left.combine(right);
 
-							// combine left/right incoming
-							operand_stack[osl - 1] = left.combine(right);
+								operand_stack.length = osl;
 
-							operand_stack.length = osl;
+							break;
 
-						break;
+						// zero or one
+						case '?':
 
-					// zero or one
-					case '?':
+								left = operand_stack[osl - 1];
 
-							left = operand_stack[osl - 1];
+								operand_stack[osl - 1] = left.split();
 
-							operand_stack[osl - 1] = left.add_split(true);
+							break;
 
-						break;
+						// zero or more
+						case '*':
 
-					// zero or more
-					case '*':
+								left = operand_stack[osl - 1];
 
-							left = operand_stack[osl - 1];
+								operand_stack[osl - 1] = left.recur(true);
 
-							operand_stack[osl - 1] = left.add_split().add_recurrence(true);
+							break;
 
-						break;
+						// one or more
+						case '+':
 
-					// one or more
-					case '+':
+								left = operand_stack[osl - 1];
 
-							left = operand_stack[osl - 1];
+								operand_stack[osl - 1] = left.recur();
 
-							operand_stack[osl - 1] = left.add_recurrence(true);
+							break;
 
-						break;
+						// create capture
+						case 'group()':
 
-					// create capture
-					case 'group()':
+								left = operand_stack[osl - 1];
 
-							left = operand_stack[osl - 1];
+								operand_stack[osl - 1] = left.capture();
 
-							operand_stack[osl - 1] = left.set_capture();
+							break;
 
-						break;
+					}
 
 				}
 
 			}
 
-			// create start state
-			fragment = operand_stack[--osl].set_capture();
+			// has at least 1 fragment
+			fragment = operand_stack[osl - 1].finalize();
 
-			operand_stack.length = osl;
+			operand_stack.length = 0;
 
-			this.create_state(
-					this.start_state,
-					fragment.incoming
-				);
-
-			// finalize
-			this.on_create_accept_states(
-					this.create_state(),
-					fragment
-				);
-
-			this.on_finalize_states(
-					fragment,
-					this.new_states
-				);
-
-			this.on_finalize_accept_states(
-					fragment,
-					this.new_accept_states,
-					name
-				);
+			// set accept state
+			this.on_finalize_states(fragment, name);
 
 		},
 
@@ -214,140 +193,111 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 		},
 
-		on_create_accept_states: function(end, fragment) {
-
-			var accept_list_index = this.accept_states;
-
-			var list = fragment.split_list;
-
-			var c, l, split_list, name, pointers, state;
-
-			// register current state as accept state
-			name = end.name;
-
-			if (!(name in accept_list_index)) {
-
-				this.create_accept_state(end, fragment);
-
-			}
-
-			// point fragment to this state
-			fragment.point(end);
-
-			// set split pointer states as end state
-			if (list) {
-
-				l = list.length;
-
-				for (c = -1; l--;) {
-
-					split_list = list[++c];
-
-					if (split_list.state) {
-
-						state = split_list.state;
-
-					} else {
-
-						state = this.on_create_state(
-												null,
-												split_list
-											);
-
-						split_list.state = state;
-
-					}
-
-					// register accept state
-					name = state.name;
-
-					if (!(name in accept_list_index)) {
-
-						this.create_accept_state(state, fragment);
-
-					}
-
-				}
-
-			}
-
-		},
-
-		on_finalize_states: function(fragment, new_states) {
+		on_finalize_states: function(fragment, token_name) {
 
 			var states = this.states;
 
-			var c, l, name, symbol, pointers, p, points, state, pindex, access;
+			var new_states = this.new_states;
+
+			var list, c, l, name, symbol;
+
+			var pointers, p, pl, points, state, origin_state, pindex, access;
 
 			// finalize states
-			for (l = new_states.length;l--;) {
+			for (c = -1, l = new_states.length;l--;) {
 
-				state = new_states[l];
+				state = origin_state = new_states[++c];
+
+				list = state.list;
+
+				this.on_finalize_state(state);
 
 				pointers = states[state.name];
 
-				p = state.pointers.pointer;
+				pl = 0;
 
 				pindex = {};
 
-				for (; p; p = p.next) {
+				for (; list; list = list.next) {
 
-					points = p.point_to_list;
+					p = list.pointer;
 
-					if (!points) {
+					for (; p; p = p.next) {
 
-						continue;
+						points = p.to;
+
+						if (!points) {
+
+							continue;
+
+						}
+
+						state = points.state;
+
+						name = state.name;
+
+						if (!name) {
+
+							this.on_finalize_state(state);
+
+							name = state.name;
+
+						}
+
+						symbol = p.symbol;
+
+						access = '@' + symbol + name;
+
+						if (access in pindex) {
+
+							continue;
+
+						}
+
+						pindex[access] = true;
+
+						pointers[pl++] = [symbol, name];
 
 					}
-
-					name = points.state.name;
-
-					symbol = p.symbol;
-
-					access = '@' + symbol + name;
-
-					if (access in pindex) {
-
-						continue;
-
-					}
-
-					pindex[access] = true;
-
-					pointers[pointers.length] = [symbol, name];
 
 				}
+
+				if (origin_state.accept_state) {
+
+					this.on_finalize_accept_state(origin_state, token_name);
+
+				}
+			}
+
+		},
+
+		on_finalize_state: function(state) {
+
+			var name = state.name;
+
+			var states = this.states;
+
+			if (!name) {
+
+				state.name = name = 's' + (++this.state_id_seed);
+
+			}
+
+			if (!(name in states)) {
+
+				states[name] = [];
 
 			}
 
 		},
 
-		on_finalize_accept_states: function(fragment, new_states, token_name) {
+		on_finalize_accept_state: function(state, token_name) {
 
-			var states = this.accept_states;
+			var accept_states = this.accept_states;
 
-			var start_flags = this.start_capture_flags;
+			var name = state.name;
 
-			var end_flags = this.end_capture_flags;
-
-			var capture_flags = this.capture_flags;
-
-			var pattern_id = token_name + this.token_patterns[token_name];
-
-			var index = 0;
-
-			var c, l;
-
-			var start_flag, end_flag;
-
-			console.log('capture: ', fragment.capture);
-
-
-			for (l = new_states.length; l--;) {
-
-				states[new_states[l].name] = token_name;
-
-			}
+			accept_states[name] = token_name;
 
 		},
 
@@ -488,15 +438,21 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
       },
 
-		create_state: function(name, list) {
+		create_state: function(name) {
 
-			return new State(this, name, list);
+			var state = new State();
+
+			var states = this.new_states;
+
+			states[states.length] = state;
+
+			return state;
 
 		},
 
 		create_fragment: function(left, right) {
 
-			return new Fragment(left, right);
+			return new Fragment(this, left, right);
 
 		},
 
