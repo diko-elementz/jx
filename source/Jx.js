@@ -7,6 +7,7 @@
       MODULES = {},
       NAME_TO_PATH_RE = /[A-Z]/g,
       PATH_TO_NAME_RE = /\/([a-z])/g,
+		JS_EXT_RE = /\.js$/i,
       QUEUE_LOAD = [],
       SCRIPT_UNINITIALIZED = 0,
       SCRIPT_LOADING = 1,
@@ -21,12 +22,14 @@
    var Jx, load, resolve, configureBaseUrl;
 
    function parseName(name) {
-      var path = name.replace(NAME_TO_PATH_RE, parseNameToPath),
-         len = path.length;
+      var path = name.replace(NAME_TO_PATH_RE, parseNameToPath);
+		var re = JS_EXT_RE;
 
-      path = path.substring(len - 3, len) !== '.js' ? path + '.js' : path;
+		path = re.test(path) ? path : path + '.js';
+		name = path.replace(PATH_TO_NAME_RE, parsePathToName);
+
       return {
-         name: path.replace(PATH_TO_NAME_RE, parsePathToName),
+         name: name.replace(re, ''),
          path: path,
          access: '::' + path
       };
@@ -142,7 +145,66 @@
 
       currentPlatform = PLATFORM_NODEJS;
 
-      configureBaseUrl = function (url) {
+   }
+   else if ('window' in GLOBAL && GLOBAL.window === GLOBAL) {
+
+      currentPlatform = PLATFORM_BROWSER;
+
+   }
+
+   Jx = GLOBAL.Jx = function () {
+      var list = MODULES,
+         l = arguments.length,
+         module = currentScope;
+
+      var arg, callback, item, params, c, rl, caller;
+
+      if (module && l) {
+         arg = arguments[--l];
+
+         // only legit module declarator
+         if (arg instanceof F) {
+            params = [];
+            rl = 0;
+            callback = arg;
+            for (c = -1; l--;) {
+               arg = arguments[++c];
+               if (arg && typeof arg == 'string') {
+                  item = resolveModule(arg);
+                  if (item) {
+                     module.modulesToLoad++;
+                     updateCallback(true, item.name,
+                        createResolveCallback(params, rl++,
+                           function(item) {
+                              module.modulesToLoad--;
+                              updateState(item);
+                              updateState(module);
+                           }));
+
+                     updateCallback(false, item.name,
+                        function (item) {
+                           updateState(module);
+                        });
+
+                  }
+
+               }
+            }
+
+            updateCallback(true, module.name,
+               function (module) {
+                  callback.apply(module.exports, params);
+               });
+
+         }
+
+      }
+      return void(0);
+   };
+
+	switch (currentPlatform) {
+	case PLATFORM_NODEJS:
+		configureBaseUrl = function (url) {
          var path = require('path');
 
          if (url && typeof url == 'string') {
@@ -155,7 +217,6 @@
          return baseUrl;
       };
 
-      // TODO: resolve filename
       load = function (module, callback) {
          var J = Jx,
             old = currentScope,
@@ -172,10 +233,11 @@
          currentScope = old;
       };
 
-   }
-   else if ('window' in GLOBAL && GLOBAL.window === GLOBAL) {
+		exports = Jx;
 
-      configureBaseUrl = function (url) {
+		break;
+	default:
+		configureBaseUrl = function (url) {
          if (url && typeof url == 'string') {
             baseUrl = url + (url.charAt(url.length -1) != '/' ? '/' : '');
          }
@@ -261,62 +323,13 @@
          script = null;
          doc = null;
       };
+	}
 
-   }
+	Jx.setBaseUrl = configureBaseUrl;
 
-   Jx = GLOBAL.Jx = function () {
-      var list = MODULES,
-         l = arguments.length,
-         module = currentScope;
+	Jx.GLOBAL = GLOBAL;
 
-      var arg, callback, item, params, c, rl, caller;
-
-      if (module && l) {
-         arg = arguments[--l];
-
-         // only legit module declarator
-         if (arg instanceof F) {
-            params = [];
-            rl = 0;
-            callback = arg;
-            for (c = -1; l--;) {
-               arg = arguments[++c];
-               if (arg && typeof arg == 'string') {
-                  item = resolveModule(arg);
-                  if (item) {
-                     module.modulesToLoad++;
-                     updateCallback(true, item.name,
-                        createResolveCallback(params, rl++,
-                           function(item) {
-                              module.modulesToLoad--;
-                              updateState(item);
-                              updateState(module);
-                           }));
-
-                     updateCallback(false, item.name,
-                        function (item) {
-                           updateState(module);
-                        });
-
-                  }
-
-               }
-            }
-
-            updateCallback(true, module.name,
-               function (module) {
-                  callback.apply(module, params);
-               });
-
-         }
-
-      }
-      return void(0);
-   };
-
-   Jx.setBaseUrl = configureBaseUrl;
-
-   Jx.module = function (url) {
+	Jx.module = function (url) {
 
       var list = MODULES;
 
@@ -361,7 +374,7 @@
    };
 
    Jx.inline = function (url, callback) {
-      var module, old, status, augmented;
+      var module, old;
 
       if (url && typeof url == 'string' && callback instanceof Function) {
          module = resolveModule(url);
@@ -369,17 +382,17 @@
          if (module) {
 
             switch (module.status) {
-               case SCRIPT_UNINITIALIZED:
-                  module.status = SCRIPT_RESOLVED;
-               case SCRIPT_RESOLVED:
-                  old = currentScope;
-                  currentScope = module;
-                  callback.call(module, module.exports);
-                  currentScope = old;
-                  break;
-               default:
-                  Jx.use(module.name, callback);
-                  break;
+				case SCRIPT_UNINITIALIZED:
+					module.status = SCRIPT_RESOLVED;
+				case SCRIPT_RESOLVED:
+					old = currentScope;
+					currentScope = module;
+					callback.call(module, module.exports);
+					currentScope = old;
+					break;
+				default:
+					Jx.use(module.name, callback);
+					break;
             }
 
             return module;
@@ -389,5 +402,9 @@
       return void(0);
    };
 
+	// set Jx as module
+	Jx.inline('jx', function () {
+		this.exports = Jx;
+	});
 
 })();

@@ -1,42 +1,58 @@
 'use strict';
 
-require('../source/core/Jx.js');
+if (typeof require != 'undefined') {
+   require('../source/Jx.js');
+}
 
 Jx.setBaseUrl('../source/');
 
+Jx.use('jxPromise', function (Promise) {
 
+   Promise.create(function (resolve, reject) {
 
-Jx.use('test-require', function () { console.log('callback from test-require'); });
+      resolve('yes!');
 
-Jx.inline('buang', function () {
-
-   Jx(function () {
-
-      this.exports.name = 'this is buang';
-
-      console.log('buang code!');
-
-
-   });
-
-   Jx(function () {
-
-      this.exports.name2 = 'this is buang';
-
-      console.log('buang code2!');
-
-
-   });
-
+   }).then(
+      function (data) {
+         console.log('resolve! ', data);
+      },
+      function (reason) {
+         console.log('rejected! ', reason);
+      });
 
 });
 
-
-
-Jx.use('buang', function (buang) {
-
-   console.log('exports from buang: ', buang);
-});
+//Jx.use('jxClass', function () { console.log('callback from ', this); });
+//
+//Jx.inline('buang', function () {
+//
+//   Jx(function () {
+//
+//      this.exports.name = 'this is buang';
+//
+//      console.log('buang code!');
+//
+//
+//   });
+//
+//   Jx(function () {
+//
+//      this.exports.name2 = 'this is buang';
+//
+//      console.log('buang code2!');
+//
+//
+//   });
+//
+//
+//});
+//
+//
+//
+//Jx.use('buang', function (buang) {
+//
+//   console.log('exports from buang: ', buang);
+//});
 
 
 //console.log('end ', test);
