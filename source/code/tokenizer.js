@@ -5,7 +5,7 @@ Jx('code/tokenizer',
    // requires
    'code/regex/token_generator',
 
-function(Generator) {
+function (Generator) {
 
 	var $ = Jx;
 
@@ -29,7 +29,7 @@ function(Generator) {
 
 		definition_processed: false,
 
-		constructor: function() {
+		constructor: function () {
 
 			this.generator = this.create_generator();
 
@@ -64,7 +64,8 @@ function(Generator) {
 
 						definition = arg;
 
-					} else {
+					}
+					else {
 
 						definition_arguments[dl++] = arg;
 
@@ -80,7 +81,8 @@ function(Generator) {
 
 					generator.define(definition_arguments);
 
-				} else if (definition) {
+				}
+				else if (definition) {
 
 					generator.define(definition);
 
@@ -92,13 +94,13 @@ function(Generator) {
 
 		},
 
-		create_generator: function() {
+		create_generator: function () {
 
 			return new Generator();
 
 		},
 
-		set_subject: function(subject) {
+		set_subject: function (subject) {
 
 			if (typeof subject == 'string') {
 
@@ -110,7 +112,7 @@ function(Generator) {
 
 		},
 
-		reset: function() {
+		reset: function () {
 
 			this.error_index = -1;
 
@@ -120,7 +122,8 @@ function(Generator) {
 
 				this.ended = false;
 
-			} else {
+			}
+			else {
 
 				this.anchor = -1;
 
@@ -130,7 +133,7 @@ function(Generator) {
 
 		},
 
-		next: function() {
+		next: function () {
 
 			var subject = this.subject;
 
@@ -139,6 +142,10 @@ function(Generator) {
 			var def = this.generator;
 
 			var ended = this.ended;
+
+			var cstart = def.capture_start;
+
+			var cend = def.capture_end;
 
 			var chr, symbol, c, l, sl, accept_index, edge;
 
@@ -193,7 +200,8 @@ function(Generator) {
 
 								follow_pointer = [found_state, c, follow_pointer];
 
-							} else {
+							}
+							else {
 
 								matched_state = true;
 
@@ -228,8 +236,9 @@ function(Generator) {
 
 							follow_pointer = follow_pointer[2];
 
+						}
 						// no more!
-						} else {
+						else {
 
 							break;
 
@@ -246,7 +255,8 @@ function(Generator) {
 
 					return [accept_token, subject.substring(anchor, accept_index + 1)];
 
-				} else {
+				}
+				else {
 
 					this.ended = true;
 
@@ -255,8 +265,9 @@ function(Generator) {
 
 						return [this.end_token, ''];
 
+					}
 					// error
-					} else {
+					else {
 
 						this.error_index = this.anchor;
 
@@ -270,7 +281,7 @@ function(Generator) {
 
 		},
 
-		get_error_part: function() {
+		get_error_part: function () {
 
 			var i = this.error_index;
 
@@ -284,7 +295,7 @@ function(Generator) {
 
 		},
 
-		symbol_match: function(symbol, input) {
+		symbol_match: function (symbol, input) {
 
 			var symbols = this.generator.symbols;
 

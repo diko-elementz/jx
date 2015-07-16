@@ -1,0 +1,9 @@
+----- FILE  :  E:\var\http\localhost80\frameworks\js\Jx\source\core\Jx.js -----
+Line 3, E:0001: Extra space after "function"
+Found 1 error, including 0 new errors, in 1 file (0 files OK).
+
+Some of the errors reported by GJsLint may be auto-fixable using the script
+fixjsstyle. Please double check any changes it makes and report any bugs. The
+script can be run by executing:
+
+fixjsstyle E:\var\http\localhost80\frameworks\js\Jx\tools\..\source\core\Jx.js 

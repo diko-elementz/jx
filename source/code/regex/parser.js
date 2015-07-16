@@ -5,9 +5,9 @@ Jx('code/regex/parser',
    // requires
    'native/string',
 
-function(string) {
+function (string) {
 
-   var   CTRL_CHAR = {
+   var CTRL_CHAR = {
             '0': "\0",
             'n': "\n",
             'r': "\r",
@@ -16,18 +16,18 @@ function(string) {
             'f': "\f"
          };
 
-   var   CTRL_CHAR_SEQUENCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+   var CTRL_CHAR_SEQUENCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-   var   LEFT_ASSOC = 1,
+   var LEFT_ASSOC = 1,
          RIGHT_ASSOC = 2,
          UNARY = 3,
          ENC_OPEN = 4,
          ENC_CLOSE = 5;
 
-   var   RANGE_RE = /^([ \s]*([0-9]+)?[ \s]*\,)?[ \s]*([0-9]+)[ \s]*$/;
+   var RANGE_RE = /^([ \s]*([0-9]+)?[ \s]*\,)?[ \s]*([0-9]+)[ \s]*$/;
 
    //  operators with precedence
-   var   OPERATORS = {
+   var OPERATORS = {
 
             '?': 9,
             '*': 9,
@@ -45,7 +45,7 @@ function(string) {
 
          };
 
-   var   SPECIAL_CHARS = {
+   var SPECIAL_CHARS = {
 
             '.': 'wildcard'
 
@@ -56,7 +56,7 @@ function(string) {
    //    previous_token == OPERAND_START_TOKENS and
    //    current_token == OPERAND_END_TOKENS
 
-   var   OPERAND_START_TOKENS = {
+   var OPERAND_START_TOKENS = {
 
             'literal': true,
             'ref': true,
@@ -71,7 +71,7 @@ function(string) {
 
          };
 
-   var   OPERAND_END_TOKENS = {
+   var OPERAND_END_TOKENS = {
 
             'literal': true,
             'ref': true,
@@ -94,51 +94,51 @@ function(string) {
 
       switch (chr) {
 
-         // escape control characters
-         case 'c':
+		// escape control characters
+		case 'c':
 
-               chr = subject.substring(c + 2, c + 3);
+				chr = subject.substring(c + 2, c + 3);
 
-               literal = String.fromCharCode(
+				literal = String.fromCharCode(
 
-                  CTRL_CHAR_SEQUENCE.indexOf(chr.toUpperCase()) + 1
+					CTRL_CHAR_SEQUENCE.indexOf(chr.toUpperCase()) + 1
 
-               );
+				);
 
-               processed = 2;
+				processed = 2;
 
-            break;
+			break;
 
-         // escape hex ascii (e.g. "\xa9")
-         case 'x':
+		// escape hex ascii (e.g. "\xa9")
+		case 'x':
 
-               chr = subject.substring(c + 2, c + 4);
+				chr = subject.substring(c + 2, c + 4);
 
-               literal = String.fromCharCode(parseInt(chr, 16));
+				literal = String.fromCharCode(parseInt(chr, 16));
 
-               processed = 3;
+				processed = 3;
 
-            break;
+			break;
 
-         // escape utf-8 (e.g. "\u0013")
-         case 'u':
+		// escape utf-8 (e.g. "\u0013")
+		case 'u':
 
-               chr = subject.substring(c + 2, c + 6);
+				chr = subject.substring(c + 2, c + 6);
 
-               literal = String.fromCharCode(parseInt(chr, 16));
+				literal = String.fromCharCode(parseInt(chr, 16));
 
-               processed = 5;
+				processed = 5;
 
-            break;
+			break;
 
-         // escape control characters and literals
-         default:
+		// escape control characters and literals
+		default:
 
-               literal = chr in CTRL_CHAR ?
+				literal = chr in CTRL_CHAR ?
 
-                        CTRL_CHAR[chr] : chr;
+							CTRL_CHAR[chr] : chr;
 
-            break;
+			break;
 
       }
 
@@ -207,7 +207,8 @@ function(string) {
 
             range = null;
 
-         } else if (!range && l && str.charAt(c + 1) == '-') {
+         }
+			else if (!range && l && str.charAt(c + 1) == '-') {
 
             chars[cl++] = range = [chr];
 
@@ -215,7 +216,8 @@ function(string) {
 
             l--;
 
-         } else {
+         }
+			else {
 
             chars[cl++] = chr;
 
@@ -237,7 +239,9 @@ function(string) {
 
       last_token_type: null,
 
-      constructor: function(regex) {
+		process_escaped_literal: escape_literal,
+
+      constructor: function (regex) {
 
          this.token_buffer = [];
 
@@ -245,9 +249,7 @@ function(string) {
 
       },
 
-      process_escaped_literal: escape_literal,
-
-      next_token: function() {
+      next_token: function () {
 
          var subject = this.subject;
 
@@ -273,8 +275,9 @@ function(string) {
 
                type = token.type;
 
-            // tokenize
-            } else {
+            }
+				// tokenize
+				else {
 
                from = c;
 
@@ -303,8 +306,9 @@ function(string) {
 
                   type = RANGE_RE.test(chr) ? '{}' : 'ref';
 
-               // tokenize character class
-               } else if (chr == '[') {
+               }
+					// tokenize character class
+					else if (chr == '[') {
 
                   next = subject.charAt(c + 1);
 
@@ -316,7 +320,8 @@ function(string) {
 
                      type = '[^]';
 
-                  } else {
+                  }
+						else {
 
                      type = '[]';
 
@@ -341,7 +346,8 @@ function(string) {
 
                         sc += to;
 
-                     } else if (chr == ']') {
+                     }
+							else if (chr == ']') {
 
                         break;
 
@@ -355,18 +361,21 @@ function(string) {
 
                   processed = sc + 1;
 
-               // tokenize special characters
-               } else if (chr in SPECIAL_CHARS){
+               }
+					// tokenize special characters
+					else if (chr in SPECIAL_CHARS){
 
                   type = SPECIAL_CHARS[chr];
 
-               // tokenize operators and operands of same type
-               } else if (chr in OPERATORS) {
+               }
+					// tokenize operators and operands of same type
+					else if (chr in OPERATORS) {
 
                   type = chr;
 
-               // tokenize escaped literal
-               } else if (chr == '\\') {
+               }
+					// tokenize escaped literal
+					else if (chr == '\\') {
 
                   o = this.process_escaped_literal(subject, c + 1);
 
@@ -394,9 +403,7 @@ function(string) {
 
                last_type in OPERAND_START_TOKENS &&
 
-               type in OPERAND_END_TOKENS
-
-            ) {
+               type in OPERAND_END_TOKENS) {
 
                buffer[bl++] = token;
 
@@ -420,15 +427,14 @@ function(string) {
 
             // post process token
             switch (type) {
-               case '{}':
-                  post_process_range(token);
-                  break;
+				case '{}':
+					post_process_range(token);
+					break;
 
-               case '[]':
-               case '[^]':
-                  post_process_character_class(token);
-                  break;
-
+				case '[]':
+				case '[^]':
+					post_process_character_class(token);
+					break;
             }
 
             this.last_token_type = type;
@@ -441,7 +447,7 @@ function(string) {
 
       },
 
-      set_subject: function(subject) {
+      set_subject: function (subject) {
 
          if (subject instanceof RegExp) {
 
@@ -449,7 +455,8 @@ function(string) {
 
             this.reset();
 
-         } else {
+         }
+			else {
 
             subject = this.subject;
 
@@ -459,7 +466,7 @@ function(string) {
 
       },
 
-      parse: function(subject) {
+      parse: function (subject) {
 
          var stack = [];
 
@@ -486,7 +493,8 @@ function(string) {
 
                      stack[sl++] = token;
 
-                  } else if (type == ')') {
+                  }
+						else if (type == ')') {
 
                      for (; sl && stack[sl - 1].type != '(';) {
 
@@ -503,7 +511,8 @@ function(string) {
 
                      rpn[rl++] = token;
 
-                  } else {
+                  }
+						else {
 
                      precedence = token.precedence;
 
@@ -517,7 +526,8 @@ function(string) {
 
                            rpn[rl++] = last_stack;
 
-                        } else {
+                        }
+								else {
 
                            break;
 
@@ -530,7 +540,8 @@ function(string) {
                   }
 
                // operand
-               } else {
+               }
+					else {
 
                   rpn[rl++] = token;
 
@@ -557,7 +568,7 @@ function(string) {
 
       },
 
-      reset: function() {
+      reset: function () {
 
          var buffer = this.token_buffer;
 

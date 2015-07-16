@@ -3,7 +3,7 @@ Jx("code/config/pointer",
 	// requires
 	"class/base",
 
-function(Class) {
+function (Class) {
 
    return {
 
@@ -15,7 +15,7 @@ function(Class) {
 
       next: null,
 
-      constructor: function(symbol) {
+      constructor: function (symbol) {
 
          this.symbol = symbol;
 

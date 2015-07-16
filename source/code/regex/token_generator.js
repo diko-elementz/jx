@@ -5,7 +5,7 @@ Jx('code/regex/token_generator',
    // requires
    'code/config/state/generator',
 
-function(Generator) {
+function (Generator) {
 
    function create_character_set(lexeme) {
 
@@ -52,7 +52,8 @@ function(Generator) {
 
             }
 
-         } else {
+         }
+			else {
 
             set[chr] = true;
 
@@ -86,7 +87,11 @@ function(Generator) {
 
 		tokenIndex: null,
 
-		on_create: function(name, rpn) {
+		capture_start: null,
+
+		capture_end: null,
+
+		on_create: function (name, rpn) {
 
 			var index = this.tokenIndex;
 
@@ -106,26 +111,57 @@ function(Generator) {
 
 		},
 
-		//create_state: function() {
-		//
-		//	var states = this.states;
-		//
-		//	var state = this.$super(arguments);
-		//
-		//	var name = state.name;
-		//
-		//	// directly register state
-		//	if (!(name in states)) {
-		//
-		//		states[name] = [];
-		//
-		//	}
-		//
-		//	return state;
-		//
-		//},
+		on_finalize_states: function (fragment, token_name) {
 
-		on_import: function(definition) {
+			var p = fragment.capture_list;
+
+			var start = this.capture_start;
+
+			var end = this.capture_end;
+
+			var state, target, pt, list;
+
+			this.$super(arguments);
+
+			// finalize capture states
+			for (; p; p = p.next) {
+
+				list = p.incoming;
+
+				state = list.state.name;
+
+				for (; list; list = list.next) {
+
+					for (pt = list.pointer; pt; pt = pt.next) {
+
+						start[state + ':' + pt.to.state.name] = true;
+
+					}
+
+				}
+
+				list = p.outgoing;
+
+				state = list.state.name;
+
+				for (; list; list = list.next) {
+
+					for (pt = list.pointer; pt; pt = pt.next) {
+
+						end[state + ':' + pt.to.state.name] = true;
+
+					}
+
+				}
+
+			}
+
+			console.log(fragment);
+
+
+		},
+
+		on_import: function (definition) {
 
 			var J = $;
 
@@ -151,7 +187,7 @@ function(Generator) {
 
 		},
 
-		on_export: function(definition) {
+		on_export: function (definition) {
 
 			this.$super(arguments);
 
@@ -159,7 +195,7 @@ function(Generator) {
 
 		},
 
-		on_reset: function() {
+		on_reset: function () {
 
 			this.$super(arguments);
 
@@ -167,17 +203,25 @@ function(Generator) {
 
 			delete this.tokenIndex;
 
+			delete this.capture_start;
+
+			delete this.capture_end;
+
 		},
 
-		prepare: function() {
+		prepare: function () {
 
 			this.$super(arguments);
 
 			this.tokens = [];
 
+			this.capture_start = {};
+
+			this.capture_end = {};
+
 		},
 
-      create_symbol_from_lexeme: function(lexeme) {
+      create_symbol_from_lexeme: function (lexeme) {
 
          var symbols = this.symbols;
 

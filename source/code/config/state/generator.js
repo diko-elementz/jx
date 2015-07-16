@@ -7,7 +7,7 @@ Jx('code/config/state/generator',
 	"code/config/list",
 	"code/config/pointer",
 
-function(RegexParser, State, Fragment, List, Pointer) {
+function (RegexParser, State, Fragment, List, Pointer) {
 
    var $ = Jx;
 
@@ -35,23 +35,14 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 		state_id_seed: 0,
 
-		start_capture_flags: null,
-
-		end_capture_flags: null,
-
-		capture_flags: null,
-
 		definition_names: ['states',
 										'symbols',
 										'accept_states',
 										'processed',
-										'token_patterns',
-										'start_capture_flags',
-										'end_capture_flags',
-										'capture_flags'
+										'token_patterns'
 									],
 
-		on_create: function(name, rpn) {
+		on_create: function (name, rpn) {
 
 			var states = this.states;
 
@@ -59,12 +50,9 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 			var osl = 0;
 
-			var c, l, lexeme, capture;
+			var c, l, lexeme;
 
 			var state, symbol, fragment, left, right, accept_fragment;
-
-			// capture pointer
-			capture = null;
 
 			for (c = -1, l = rpn.length; l--;) {
 
@@ -90,74 +78,75 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 					operand_stack[osl++] = fragment;
 
-				} else {
+				}
+				else {
 
 					// apply operations
 					switch(lexeme.type) {
 
-						// concat
-						case '.':
+					// concat
+					case '.':
 
-								right = operand_stack[--osl];
+							right = operand_stack[--osl];
 
-								left = operand_stack[osl - 1];
+							left = operand_stack[osl - 1];
 
-								// connect to state
-								operand_stack[osl - 1] = left.concat(right);
+							// connect to state
+							operand_stack[osl - 1] = left.concat(right);
 
-								operand_stack.length = osl;
+							operand_stack.length = osl;
 
-							break;
+						break;
 
-						// alternative
-						case '|':
+					// alternative
+					case '|':
 
-								right = operand_stack[--osl];
+							right = operand_stack[--osl];
 
-								left = operand_stack[osl - 1];
+							left = operand_stack[osl - 1];
 
-								// combine left/right incoming
-								operand_stack[osl - 1] = left.combine(right);
+							// combine left/right incoming
+							operand_stack[osl - 1] = left.combine(right);
 
-								operand_stack.length = osl;
+							operand_stack.length = osl;
 
-							break;
+						break;
 
-						// zero or one
-						case '?':
+					// zero or one
+					case '?':
 
-								left = operand_stack[osl - 1];
+							left = operand_stack[osl - 1];
 
-								operand_stack[osl - 1] = left.split();
+							operand_stack[osl - 1] = left.split();
 
-							break;
+						break;
 
-						// zero or more
-						case '*':
+					// zero or more
+					case '*':
 
-								left = operand_stack[osl - 1];
+							left = operand_stack[osl - 1];
 
-								operand_stack[osl - 1] = left.recur(true);
+							operand_stack[osl - 1] = left.recur(true);
 
-							break;
+						break;
 
-						// one or more
-						case '+':
+					// one or more
+					case '+':
 
-								left = operand_stack[osl - 1];
+							left = operand_stack[osl - 1];
 
-								operand_stack[osl - 1] = left.recur();
+							operand_stack[osl - 1] = left.recur();
 
-							break;
+						break;
 
-						// create capture
-						case 'group()':
+					// create capture
+					case 'group()':
 
-								left = operand_stack[osl - 1];
+							left = operand_stack[osl - 1];
 
-								operand_stack[osl - 1] = left.capture();
+							operand_stack[osl - 1] = left.capture();
 
-							break;
+						break;
 
 					}
 
@@ -171,11 +160,15 @@ function(RegexParser, State, Fragment, List, Pointer) {
 			operand_stack.length = 0;
 
 			// set accept state
-			this.on_finalize_states(fragment, name);
+			this.on_finalize_states(
+									fragment,
+									name,
+									'm' + (++this.state_id_seed)
+								);
 
 		},
 
-		on_before_create: function() {
+		on_before_create: function () {
 
 			// create new states
 			this.new_states = [];
@@ -184,7 +177,7 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 		},
 
-		on_after_create: function() {
+		on_after_create: function () {
 
 			// remove new states
 			delete this.new_states;
@@ -193,7 +186,7 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 		},
 
-		on_finalize_states: function(fragment, token_name) {
+		on_finalize_states: function (fragment, token_name, match_id) {
 
 			var states = this.states;
 
@@ -264,14 +257,19 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 				if (origin_state.accept_state) {
 
-					this.on_finalize_accept_state(origin_state, token_name);
+					this.on_finalize_accept_state(
+											origin_state,
+											token_name,
+											match_id
+										);
 
 				}
+
 			}
 
 		},
 
-		on_finalize_state: function(state) {
+		on_finalize_state: function (state) {
 
 			var name = state.name;
 
@@ -291,23 +289,26 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 		},
 
-		on_finalize_accept_state: function(state, token_name) {
+		on_finalize_accept_state: function (state, token_name, match_id) {
 
 			var accept_states = this.accept_states;
 
 			var name = state.name;
 
-			accept_states[name] = token_name;
+			accept_states[name] = {
+										token: token_name,
+										match_id: match_id
+									};
 
 		},
 
-		on_export: function(definition) {
+		on_export: function (definition) {
 
 			this.apply_obj_definitions(this, definition);
 
 		},
 
-		on_import: function(definition) {
+		on_import: function (definition) {
 
 			var seed = definition.state_id_seed;
 
@@ -321,7 +322,7 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 		},
 
-		on_reset: function() {
+		on_reset: function () {
 
 			var names = this.definition_names;
 
@@ -342,11 +343,11 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 		},
 
-		on_define: function() {
+		on_define: function () {
 
 		},
 
-		define: function(args) {
+		define: function (args) {
 
 			var index = {};
 
@@ -366,7 +367,8 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 					name = arg;
 
-				} else if (name && arg instanceof RegExp) {
+				}
+				else if (name && arg instanceof RegExp) {
 
 					this.create(name, regex_parser.parse(arg));
 
@@ -385,7 +387,7 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 		},
 
-      create: function(name, rpn) {
+      create: function (name, rpn) {
 
 			var signature = rpn.signature;
 
@@ -411,7 +413,8 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 					patterns[name] = 0;
 
-				} else {
+				}
+				else {
 
 					patterns[name]++;
 
@@ -424,7 +427,8 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 				this.on_after_create();
 
-			} else if (id) {
+			}
+			else if (id) {
 
 				throw new Error(
 
@@ -438,7 +442,7 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
       },
 
-		create_state: function(name) {
+		create_state: function (name) {
 
 			var state = new State();
 
@@ -450,25 +454,25 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 		},
 
-		create_fragment: function(left, right) {
+		create_fragment: function (left, right) {
 
 			return new Fragment(this, left, right);
 
 		},
 
-		create_list: function(pointer) {
+		create_list: function (pointer) {
 
 			return new List(pointer);
 
 		},
 
-		create_pointer: function(symbol) {
+		create_pointer: function (symbol) {
 
 			return new Pointer(symbol);
 
 		},
 
-		create_accept_state: function(state, fragment) {
+		create_accept_state: function (state, fragment) {
 
 			var states = this.new_accept_states;
 
@@ -476,13 +480,13 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 		},
 
-      create_symbol_from_lexeme: function(lexeme) {
+      create_symbol_from_lexeme: function (lexeme) {
 
 			return lexeme.type == 'literal' ? lexeme.value : '';
 
 		},
 
-		reset: function() {
+		reset: function () {
 
 			if (this.prepared) {
 
@@ -494,7 +498,7 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 		},
 
-      prepare: function() {
+      prepare: function () {
 
 			this.prepared = true;
 
@@ -504,7 +508,7 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
       },
 
-		apply_obj_definitions: function(source, target) {
+		apply_obj_definitions: function (source, target) {
 
 			var J = $;
 
@@ -540,7 +544,7 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 		},
 
-      export_definition: function() {
+      export_definition: function () {
 
 			var definition;
 
@@ -564,7 +568,7 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
       },
 
-      import_definition: function(definition) {
+      import_definition: function (definition) {
 
 			this.reset();
 
@@ -572,7 +576,8 @@ function(RegexParser, State, Fragment, List, Pointer) {
 
 				this.define(definition);
 
-			} else if ($.is_object(definition)) {
+			}
+			else if ($.is_object(definition)) {
 
 				this.prepare();
 

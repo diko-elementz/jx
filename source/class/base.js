@@ -2,7 +2,7 @@
 
 Jx.alias('class/base', '$class');
 
-Jx('class/base', function() {
+Jx('class/base', function () {
 
    var $ = Jx;
 
@@ -263,9 +263,7 @@ Jx('class/base', function() {
       // augment
       if (value instanceof Function &&
 
-         is_method(Prototype, name)
-
-      ) {
+         is_method(Prototype, name)) {
 
 			value = create_sub_method(value, Prototype[name]);
 
@@ -380,7 +378,7 @@ Jx('class/base', function() {
 
 
    // create PRE processors
-   create_processor('PRE', 'extend', function(value, definition) {
+   create_processor('PRE', 'extend', function (value, definition) {
 
          var Super = this;
 
@@ -392,7 +390,8 @@ Jx('class/base', function() {
 
             return { '@singleton': false };
 
-         } else {
+         }
+			else {
 
             Super = Base;
 
@@ -402,7 +401,8 @@ Jx('class/base', function() {
 
                Super = value;
 
-            } else if (value instanceof Object) {
+            }
+				else if (value instanceof Object) {
 
                Constructor = value.constructor;
 
@@ -423,7 +423,7 @@ Jx('class/base', function() {
       });
 
    // create ON processors
-   create_processor('ON', 'extend', function(value, definition) {
+   create_processor('ON', 'extend', function (value, definition) {
 
          var Class = extend(definition.Superclass, this);
 
@@ -436,7 +436,7 @@ Jx('class/base', function() {
       });
 
    // create POST processors
-   create_processor('POST', 'singleton', function(value, definition) {
+   create_processor('POST', 'singleton', function (value, definition) {
 
          var Class = this.constructor;
 
@@ -451,7 +451,7 @@ Jx('class/base', function() {
 
       });
 
-	create_processor('POST', 'static', function(value, definition) {
+	create_processor('POST', 'static', function (value, definition) {
 
 			var Class = definition.Class;
 
@@ -467,7 +467,7 @@ Jx('class/base', function() {
    $.exporter('default', export_class);
 
    // create class exporter
-   $.exporter('class', function(id, definition, properties) {
+   $.exporter('class', function (id, definition, properties) {
 
       var is_singleton = '@singleton' in properties ?
 
@@ -490,7 +490,7 @@ Jx('class/base', function() {
 
       subclass_of: is_subclass_of,
 
-		clone: function(obj) {
+		clone: function (obj) {
 
 			if ($.is_object(obj)) {
 
@@ -504,7 +504,7 @@ Jx('class/base', function() {
 
 		},
 
-      instantiate: function(Class, args) {
+      instantiate: function (Class, args) {
 
          var instance;
 
@@ -522,7 +522,7 @@ Jx('class/base', function() {
 
       },
 
-      processors: function(name, callback) {
+      processors: function (name, callback) {
 
          var parts = parse_processor_name(name);
 
@@ -538,7 +538,7 @@ Jx('class/base', function() {
 
       },
 
-      create: function(properties) {
+      create: function (properties) {
 
          if ($.is_object(properties)) {
 
@@ -550,7 +550,7 @@ Jx('class/base', function() {
 
       },
 
-      extend: function(Class, properties) {
+      extend: function (Class, properties) {
 
          if (Class instanceof Function && $.is_object(properties)) {
 

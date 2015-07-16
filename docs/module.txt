@@ -1,0 +1,40 @@
+
+
+Jx module system:
+
+define module workflow:
+
+- state:SCRIPT_UNINITIALIZED
+- state:SCRIPT_LOADING
+- state:SCRIPT_LOADED
+- state:SCRIPT_RESOLVED
+
+
+path system:
+
+- relative paths are paths that starts with "."
+
+
+
+
+
+
+
+
+
+
+
+
+
+configuration:
+
+Jx.baseUrl = './lib';
+
+declaration:
+
+Jx('requireJsFile1',	// will resolve to ./
+	'requireJsFile2',
+	function (exports1, exports2) {
+
+
+	});

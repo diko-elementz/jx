@@ -1,4 +1,4 @@
-Jx("code/config/list", function() {
+Jx("code/config/list", function () {
 
    return {
 
@@ -10,7 +10,7 @@ Jx("code/config/list", function() {
 
 		next: null,
 
-      constructor: function(pointer) {
+      constructor: function (pointer) {
 
          if (pointer) {
 
@@ -20,7 +20,7 @@ Jx("code/config/list", function() {
 
       },
 
-		point_to: function(list) {
+		point_to: function (list) {
 
 			var p = this;
 
@@ -42,7 +42,7 @@ Jx("code/config/list", function() {
 
 		},
 
-		append: function(list) {
+		append: function (list) {
 
 			var p = this;
 
@@ -53,7 +53,7 @@ Jx("code/config/list", function() {
 
 		},
 
-		apply_state: function(state) {
+		apply_state: function (state) {
 
 			var list = this;
 
@@ -68,7 +68,7 @@ Jx("code/config/list", function() {
 
 		},
 
-		clone_pointers_from: function(generator, list, to) {
+		clone_pointers_from: function (generator, list, to) {
 
 			var pointer = null;
 

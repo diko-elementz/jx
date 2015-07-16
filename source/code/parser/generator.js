@@ -3,7 +3,7 @@ Jx('code/parser/generator',
    // requires
 	'code/config/state/generator',
 
-function(Generator) {
+function (Generator) {
 
 	var $ = Jx;
 
@@ -15,7 +15,7 @@ function(Generator) {
 
 		fragments: null,
 
-		constructor: function() {
+		constructor: function () {
 
 			this.$super(arguments);
 
@@ -23,13 +23,13 @@ function(Generator) {
 
 		},
 
-		on_create: function(definition, name, rpn) {
+		on_create: function (definition, name, rpn) {
 
 			this.$super(arguments);
 
 		},
 
-		on_finalize_states: function(definition, fragment, new_states) {
+		on_finalize_states: function (definition, fragment, new_states) {
 
 			this.$super(arguments);
 
@@ -37,11 +37,11 @@ function(Generator) {
 
 		},
 
-		apply_to: function(definition, rule, state) {
+		apply_to: function (definition, rule, state) {
 
 		},
 
-		prepare_definitions: function(definition) {
+		prepare_definitions: function (definition) {
 
 			this.$super(arguments);
 

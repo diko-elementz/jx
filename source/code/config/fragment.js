@@ -4,7 +4,7 @@ Jx("code/config/fragment",
 	"class/base",
 	"code/config/list",
 
-function(Class, List) {
+function (Class, List) {
 
    return {
 
@@ -22,7 +22,7 @@ function(Class, List) {
 
 		next: null,
 
-      constructor: function(generator, incoming, outgoing) {
+      constructor: function (generator, incoming, outgoing) {
 
 			this.generator = generator;
 
@@ -32,7 +32,7 @@ function(Class, List) {
 
       },
 
-		clone: function(incoming, outgoing, split) {
+		clone: function (incoming, outgoing, split) {
 
 			var generator = this.generator;
 
@@ -64,7 +64,7 @@ function(Class, List) {
 
 		},
 
-		concat: function(right) {
+		concat: function (right) {
 
 			var generator = this.generator;
 
@@ -96,7 +96,7 @@ function(Class, List) {
 
 		},
 
-		combine: function(right) {
+		combine: function (right) {
 
 			var generator = this.generator;
 
@@ -119,7 +119,7 @@ function(Class, List) {
 
 		},
 
-		split: function() {
+		split: function () {
 
 			var generator = this.generator;
 
@@ -139,7 +139,7 @@ function(Class, List) {
 
 		},
 
-		recur: function(split) {
+		recur: function (split) {
 
 			var fragment = split ? this.split() : this.clone();
 
@@ -156,7 +156,7 @@ function(Class, List) {
 
 		},
 
-		capture: function() {
+		capture: function () {
 
 			var fragment = this.clone();
 
@@ -174,7 +174,7 @@ function(Class, List) {
 
 		},
 
-		join_capture: function(left, right) {
+		join_capture: function (left, right) {
 
 			var before = left.capture_list;
 
@@ -199,7 +199,7 @@ function(Class, List) {
 
 		},
 
-		combine_list: function(left, right, create_state) {
+		combine_list: function (left, right, create_state) {
 
 			var left_state = left.state;
 
@@ -237,7 +237,7 @@ function(Class, List) {
 
 		},
 
-		finalize: function() {
+		finalize: function () {
 
 			var generator = this.generator;
 

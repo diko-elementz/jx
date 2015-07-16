@@ -1,6 +1,6 @@
 "use strict";
 
-Jx('event/promise', function() {
+Jx('event/promise', function () {
 
    var PENDING = 0;
 
@@ -12,15 +12,23 @@ Jx('event/promise', function() {
 
             var state = PENDING;
 
-            var Promise = this;
+				var data = void(0);
 
-            function resolve(fulfilled) {
+            function resolve(param) {
 
-               state = fulfilled !== false ?
+               state = FULFILLED;
 
-                           FULFILLED : REJECTED;
+					data = param;
 
             }
+
+				function reject(reason) {
+
+					state = REJECTED;
+
+					data = reason;
+
+				}
 
             function handle(callback, match_state) {
 
@@ -35,17 +43,17 @@ Jx('event/promise', function() {
 
                if (!state) {
 
-                  interval = setInterval(function() {
+                  interval = setInterval(function () {
 
                         check(resolve);
 
-                        if (state != PENDING) {
+                        if (state) {
 
                            clearInterval(interval);
 
                            if (state == match_state) {
 
-                              callback(Promise);
+                              callback(data);
 
                            }
 
@@ -53,23 +61,23 @@ Jx('event/promise', function() {
 
                      }, 1);
 
-               } else if (state == match_state) {
+               }
+					else if (state == match_state) {
 
-                  callback(Promise);
+                  callback(data);
 
                }
 
             }
 
-            function then(on_fulfill, on_reject) {
+            this.then = function (on_fulfill, on_reject) {
 
                if (on_fulfill) {
 
                   handle(on_fulfill, FULFILLED);
 
                }
-
-               if (on_reject) {
+					else if (on_reject) {
 
                   handle(on_reject, REJECTED);
 
@@ -78,8 +86,6 @@ Jx('event/promise', function() {
                return this;
 
             }
-
-            this.then = then;
 
             return this;
 

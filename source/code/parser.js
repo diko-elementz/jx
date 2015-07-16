@@ -4,7 +4,7 @@ Jx('code/parser',
    'code/config/state/generator',
    'code/regex/parser',
 
-function(Generator, RegParser) {
+function (Generator, RegParser) {
 
    var $ = Jx;
 
@@ -18,7 +18,7 @@ function(Generator, RegParser) {
 
       generator: null,
 
-      constructor: function() {
+      constructor: function () {
 
          var generator = this.generator;
 
@@ -38,7 +38,7 @@ function(Generator, RegParser) {
 
       },
 
-      process_definitions: function(args) {
+      process_definitions: function (args) {
 
          var definitions = {};
 
@@ -62,7 +62,8 @@ function(Generator, RegParser) {
 
                name = arg;
 
-            } else if (name && arg instanceof RegExp) {
+            }
+				else if (name && arg instanceof RegExp) {
 
                generator.create(definitions, name, reg_parser.parse(arg));
 
@@ -74,15 +75,16 @@ function(Generator, RegParser) {
 
       },
 
-      define: function(definitions) {
+      define: function (definitions) {
 
          // define states from tokens
          if (typeof definitions == 'string') {
 
             definitions = this.process_definitions(arguments);
 
-         // directly apply definitions
-         } else if (!$.is_object(definitions)) {
+         }
+			// directly apply definitions
+			else if (!$.is_object(definitions)) {
 
             definitions = null;
 

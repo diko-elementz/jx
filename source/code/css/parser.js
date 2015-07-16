@@ -5,7 +5,7 @@ Jx('code/css/parser',
 
    'code/parser',
 
-function(Tokenizer, BaseParser) {
+function (Tokenizer, BaseParser) {
 
    return {
 

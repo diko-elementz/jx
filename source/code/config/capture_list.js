@@ -1,4 +1,4 @@
-Jx("code/config/capture_list", function() {
+Jx("code/config/capture_list", function () {
 
    return {
 
@@ -8,14 +8,14 @@ Jx("code/config/capture_list", function() {
 
       next: null,
 
-      constructor: function(fragment) {
+      constructor: function (fragment) {
 
          this.fragment = fragment;
 
       },
 
-		add: function() {
-			
+		add: function () {
+
 		}
 
 
