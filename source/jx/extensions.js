@@ -4,6 +4,9 @@ Jx('jx', function (J) {
 
    var O = Object.prototype,
       toString = O.toString,
+      exitCallback = [],
+      tickQueue = {},
+      tickIdGen = 0,
       unenumerables = (function (isEnumerable) {
             var sample = {},
                names = ['constructor',
@@ -149,6 +152,80 @@ Jx('jx', function (J) {
       default: return !obj;
       }
    };
+
+   this.exit = function (callback) {
+      var list;
+      if (J.isFunction(callback)) {
+         list = exitCallback;
+         list[list.length] = callback;
+      }
+      return J;
+   };
+
+   // TODO: execute exit callbacks as soon as app exits;
+
+   switch (J.platform) {
+   case 'nodejs':
+      this.nextTick = function (callback, timeout) {
+         var id = ++tickIdGen;
+         var set = J.nextTick.immediate;
+         var returned = true;
+
+         if (timeout < 10 || !J.isNumber(timeout)) {
+            timeout = 10;
+         }
+         function tickCallback() {
+            var lastRun = Date.now();
+            while (lastRun + timeout > Date.now());
+            if (id in tickQueue) {
+               callback();
+               if (id in tickQueue) {
+                  set(tickCallback);
+               }
+            }
+            return;
+         };
+
+         tickQueue[id] = tickCallback;
+         set(tickCallback);
+
+         return id;
+      };
+
+      this.nextTick.immediate = setImmediate;
+
+      this.clearTick = function (id) {
+         if (J.isNumber(id) && id in tickQueue) {
+            delete tickQueue[id];
+         }
+      };
+      break;
+   case 'browser':
+      this.nextTick = function (callback, timeout) {
+         var id;
+
+         if (timeout < 10 || !J.isNumber(timeout)) {
+            timeout = 10;
+         }
+         id = setInterval(callback, timeout);
+         tickQueue[id] = callback;
+         return id;
+      };
+      this.clearTick = function (id) {
+         if (J.isNumber(id) && id in tickQueue) {
+            delete tickQueue[id];
+            clearInterval(id);
+         }
+      };
+
+      break;
+   }
+
+
+
+
+
+
 
    // apply to jx
    this.assign(J, this);

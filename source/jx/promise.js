@@ -16,7 +16,7 @@ Jx('jx', 'jxExtensions', function (Jx) {
 
 
    // use global promise
-   if (false) { //'Promise' in GLOBAL) {
+   if (false) { //'Promise' in GLOBAL) {  // need to test Promise emulator
 
       Promise = GLOBAL.Promise;
 
@@ -90,13 +90,15 @@ Jx('jx', 'jxExtensions', function (Jx) {
 
          // async
          if (status != EXEC_SETTLED) {
-            interval = setInterval(
+            interval = Jx.nextTick(
                            function () {
-                              if (status != EXEC_SETTLED) {
+                              switch (status) {
+                              case EXEC_RESOLVED:
+                              case EXEC_REJECTED:
                                  updateState();
-                              }
-                              else {
-                                 clearInterval(interval);
+                              case EXEC_SETTLED:
+                                 Jx.clearTick(interval);
+                                 break;
                               }
                            }, 10);
          }
@@ -170,9 +172,9 @@ Jx('jx', 'jxExtensions', function (Jx) {
    }
 
    // export
-   this.create = function (checker) {
+   this.create = function (executor) {
 
-      return new Promise(checker);
+      return new Promise(executor);
 
    };
 

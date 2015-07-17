@@ -204,6 +204,7 @@
 
 	switch (currentPlatform) {
 	case PLATFORM_NODEJS:
+		Jx.platform = 'nodejs';
 		configureBaseUrl = function (url) {
          var path = require('path');
 
@@ -237,6 +238,7 @@
 
 		break;
 	default:
+		Jx.platform = 'browser';
 		configureBaseUrl = function (url) {
          if (url && typeof url == 'string') {
             baseUrl = url + (url.charAt(url.length -1) != '/' ? '/' : '');

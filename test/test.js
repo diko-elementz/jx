@@ -15,12 +15,60 @@ Jx.use('jxPromise', function (Promise) {
    }).then(
       function (data) {
          console.log('resolve! ', data);
+         return data;
       },
       function (reason) {
          console.log('rejected! ', reason);
-      });
+         return data;
+      }).then(
+         function (data) {
+            console.log('sub resolved! ', data);
+            return data;
+         },
+         function (reason) {
+            console.log('sub rejected! ', reason);
+         });
 
 });
+
+
+
+
+
+
+//Jx.use('jxExtensions', function (J) {
+//
+//   var c = 0;
+//   var id = J.nextTick(function () {
+//      c++;
+//      if (c > 3000) {
+//         J.clearTick(id);
+//         id = 0;
+//      }
+//      else {
+//         console.log('tick!', c);
+//      }
+//   }, 10);
+//
+//
+//
+//});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //Jx.use('jxClass', function () { console.log('callback from ', this); });
 //
