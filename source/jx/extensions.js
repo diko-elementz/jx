@@ -7,6 +7,7 @@ Jx('jx', function (J) {
       exitCallback = [],
       tickQueue = {},
       tickIdGen = 0,
+      GLOBAL = Jx.GLOBAL,
       unenumerables = (function (isEnumerable) {
             var sample = {},
                names = ['constructor',
@@ -166,58 +167,27 @@ Jx('jx', function (J) {
 
    switch (J.platform) {
    case 'nodejs':
-      this.nextTick = function (callback, timeout) {
-         var id = ++tickIdGen;
-         var set = J.nextTick.immediate;
-         var returned = true;
-
-         if (timeout < 10 || !J.isNumber(timeout)) {
-            timeout = 10;
+      if ('setImmediate' in GLOBAL) {
+         this.nextTick = setImmediate;
+      }
+      else if (GLOBAL.process && 'nextTick' in process) {
+         this.nextTick = process.nextTick;
+      }
+      else {
+         this.nextTick = function (callback) {
+            console.log('timers are not supported in this nodejs build');
+            callback();
          }
-         function tickCallback() {
-            var lastRun = Date.now();
-            while (lastRun + timeout > Date.now());
-            if (id in tickQueue) {
-               callback();
-               if (id in tickQueue) {
-                  set(tickCallback);
-               }
-            }
-            return;
-         };
-
-         tickQueue[id] = tickCallback;
-         set(tickCallback);
-
-         return id;
-      };
-
-      this.nextTick.immediate = setImmediate;
-
-      this.clearTick = function (id) {
-         if (J.isNumber(id) && id in tickQueue) {
-            delete tickQueue[id];
-         }
-      };
-      break;
+      }
    case 'browser':
-      this.nextTick = function (callback, timeout) {
-         var id;
-
-         if (timeout < 10 || !J.isNumber(timeout)) {
-            timeout = 10;
-         }
-         id = setInterval(callback, timeout);
-         tickQueue[id] = callback;
-         return id;
-      };
-      this.clearTick = function (id) {
-         if (J.isNumber(id) && id in tickQueue) {
-            delete tickQueue[id];
-            clearInterval(id);
-         }
-      };
-
+      if ('setImmediate' in GLOBAL) {
+         this.nextTick = setImmediate;
+      }
+      else {
+         this.nextTick = function (callback) {
+            setTimeout(callback, 10);
+         };
+      }
       break;
    }
 

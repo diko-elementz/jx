@@ -13,6 +13,10 @@
       SCRIPT_LOADING = 1,
       SCRIPT_LOADED = 2,
       SCRIPT_RESOLVED = 3,
+		CALLBACK_DECLARATION_PRIORITY = 1,
+		CALLBACK_RESOLVE_PRIORITY = 2,
+		CALLBACK_AFTER_DECLARATION_PRIORITY = 3,
+		CALLBACK_USAGE_PRIORITY = 4,
       PLATFORM_BROWSER = 1,
       PLATFORM_NODEJS = 2,
       currentPlatform = PLATFORM_BROWSER,
@@ -113,8 +117,9 @@
       };
    }
 
-   function updateCallback(highPriority, name, callback) {
+   function updateCallback(priority, name, callback) {
       var module = resolveModule(name);
+
       var callbacks, l;
 
       if (module.status == SCRIPT_RESOLVED) {
@@ -123,16 +128,15 @@
       else {
          callbacks = module.callbacks;
          l = callbacks.length;
-         if (highPriority) {
-            callback.high = true;
-            for (; l--;) {
-               if (callbacks[l].high) {
-                  l++;
-                  break;
-               }
-            }
-         }
-         callbacks.splice(l, 0, callback);
+
+			callback.priority = priority;
+
+			for (; l--;) {
+				if (callbacks[l].priority < priority) {
+					break;
+				}
+			}
+         callbacks.splice(++l, 0, callback);
       }
       updateState(module);
    }
@@ -173,7 +177,9 @@
                   item = resolveModule(arg);
                   if (item) {
                      module.modulesToLoad++;
-                     updateCallback(true, item.name,
+                     updateCallback(
+								CALLBACK_RESOLVE_PRIORITY,
+								item.name,
                         createResolveCallback(params, rl++,
                            function(item) {
                               module.modulesToLoad--;
@@ -181,7 +187,9 @@
                               updateState(module);
                            }));
 
-                     updateCallback(false, item.name,
+                     updateCallback(
+								CALLBACK_AFTER_DECLARATION_PRIORITY,
+								item.name,
                         function (item) {
                            updateState(module);
                         });
@@ -191,11 +199,10 @@
                }
             }
 
-            updateCallback(true, module.name,
+            updateCallback(CALLBACK_DECLARATION_PRIORITY, module.name,
                function (module) {
-                  callback.apply(module.exports, params);
+						callback.apply(module.exports, params);
                });
-
          }
 
       }
@@ -235,7 +242,6 @@
       };
 
 		exports = Jx;
-
 		break;
 	default:
 		Jx.platform = 'browser';
@@ -363,7 +369,7 @@
          module = resolveModule(url);
 
          if (module) {
-            updateCallback(false, module.name,
+            updateCallback(CALLBACK_USAGE_PRIORITY, module.name,
                function (module) {
                   callback.call(module, module.exports);
                });

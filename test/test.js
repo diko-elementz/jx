@@ -6,33 +6,51 @@ if (typeof require != 'undefined') {
 
 Jx.setBaseUrl('../source/');
 
+
 Jx.use('jxPromise', function (Promise) {
+
+   console.log('promise', Promise.Promise);
 
    Promise.create(function (resolve, reject) {
 
       resolve('yes!');
 
-   }).then(
+   }).
+   then(
       function (data) {
-         console.log('resolve! ', data);
-         return data;
+         return Promise.create(function (resolve, reject) {
+            resolve('inner yes!');
+         });
       },
       function (reason) {
          console.log('rejected! ', reason);
+      }).
+   then(
+      function (data) {
+         console.log('sub resolved! ', data);
          return data;
-      }).then(
-         function (data) {
-            console.log('sub resolved! ', data);
-            return data;
-         },
-         function (reason) {
-            console.log('sub rejected! ', reason);
-         });
+      });
 
 });
 
 
+Jx.use('jxPromise', function (Promise) {
 
+   console.log('next: ', Promise.Promise);
+
+   Promise.all([
+      Promise.create(function (resolve, reject) {
+         resolve('buang!');
+      }),
+      Promise.create(function (resolve, reject) {
+         resolve('ka!');
+      })
+   ]).then(function (values) {
+      console.log('found! ', values);
+   });
+
+
+});
 
 
 
