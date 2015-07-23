@@ -13,15 +13,20 @@
       SCRIPT_LOADING = 1,
       SCRIPT_LOADED = 2,
       SCRIPT_RESOLVED = 3,
+
 		CALLBACK_DECLARATION_PRIORITY = 1,
 		CALLBACK_RESOLVE_PRIORITY = 2,
 		CALLBACK_AFTER_DECLARATION_PRIORITY = 3,
 		CALLBACK_USAGE_PRIORITY = 4,
+
       PLATFORM_BROWSER = 1,
       PLATFORM_NODEJS = 2,
+
       currentPlatform = PLATFORM_BROWSER,
       baseUrl = 'js/',
-      currentScope = void(0);
+      currentScope = void(0),
+		isProcessing = false,
+		processes = [];
 
    var Jx, load, resolve, configureBaseUrl;
 
@@ -69,6 +74,7 @@
             path: baseUrl + filename,
             status: SCRIPT_UNINITIALIZED,
             modulesToLoad: 0,
+				updatingState: false,
             exports: {},
             callbacks: []
          };
@@ -80,35 +86,72 @@
    }
 
    function updateState(module) {
-      var current = module.status;
-      var l, callbacks;
 
-      switch (current) {
-      case SCRIPT_UNINITIALIZED: // load when uninitialized
-         current = SCRIPT_LOADING;
-         module.modulesToLoad++;
-         load(module, function (module) {
-               module.modulesToLoad--;
-               updateState(module);
-            });
-         break;
-      case SCRIPT_LOADING:
-         if (!module.modulesToLoad) {
-            current = SCRIPT_LOADED;
-         }
-         break;
-      case SCRIPT_LOADED:
-         // shift to RESOLVED only if exports is defined
-         module.status = current = SCRIPT_RESOLVED;
-         callbacks = module.callbacks;
-         for (; callbacks.length;) {
-            callbacks.shift()(module);
-         }
+		function stateProcessor() {
+			var current = module.status,
+				updating = module.updatingState;
 
-         break;
-      }
-      return module.status = current;
+			var l, callbacks;
+
+			switch (current) {
+			case SCRIPT_UNINITIALIZED: // load when uninitialized
+				current = SCRIPT_LOADING;
+				module.modulesToLoad++;
+				load(module, function (module) {
+						module.modulesToLoad--;
+						updateState(module);
+					});
+				break;
+			case SCRIPT_LOADING:
+				if (!module.modulesToLoad) {
+					current = SCRIPT_LOADED;
+				}
+				break;
+			case SCRIPT_LOADED:
+				// shift to RESOLVED only if exports is defined
+				module.status = current = SCRIPT_RESOLVED;
+				callbacks = module.callbacks;
+				for (; callbacks.length;) {
+					callbacks.shift()(module);
+				}
+
+				break;
+			}
+
+			return module.status = current;
+		}
+
+		processes[processes.length] = stateProcessor;
+
+		stateProcessor.status = module.status;
+
+		runProcess();
+
    }
+
+	function runProcess() {
+		var old = isProcessing;
+		var current, status, process;
+		if (!isProcessing) {
+			isProcessing = true;
+
+			for (;processes.length;) {
+
+				process = processes[0];
+				processes.splice(0,1);
+				status = null;
+				current = process.status;
+				for (; status != current;) {
+					status = current;
+					current = process();
+				}
+
+			}
+
+			isProcessing = old;
+
+		}
+	}
 
    function createResolveCallback(params, index, callback) {
       return function (module) {
@@ -119,7 +162,6 @@
 
    function updateCallback(priority, name, callback) {
       var module = resolveModule(name);
-
       var callbacks, l;
 
       if (module.status == SCRIPT_RESOLVED) {
@@ -130,13 +172,14 @@
          l = callbacks.length;
 
 			callback.priority = priority;
-
-			for (; l--;) {
-				if (callbacks[l].priority < priority) {
-					break;
-				}
+			for (; l-- && callbacks[l].priority > priority;) {
+				//if (callbacks[l].priority < priority) {
+				//	break;
+				//}
 			}
-         callbacks.splice(++l, 0, callback);
+			if (priority == 4) {
+			}
+			callbacks.splice(++l, 0, callback);
       }
       updateState(module);
    }
@@ -212,6 +255,7 @@
 	switch (currentPlatform) {
 	case PLATFORM_NODEJS:
 		Jx.platform = 'nodejs';
+
 		configureBaseUrl = function (url) {
          var path = require('path');
 
@@ -230,15 +274,11 @@
             old = currentScope,
             path = require('path');
 
-         module.status = SCRIPT_LOADING;
          currentScope = module;
-         module.modulesToLoad++;
          require(module.path);
-         module.modulesToLoad--;
-         module.status = SCRIPT_LOADED;
-         updateState(module);
-         callback(module);
          currentScope = old;
+			callback(module);
+
       };
 
 		exports = Jx;
@@ -262,11 +302,7 @@
          xhr = null;
 
          // actual bulk load
-         list[list.length] = [
-            module,
-            function (module) {
-               callback(module);
-            }];
+         list[list.length] = [module, callback];
 
          // start bulk load if not yet started
          load.bulkLoad();
@@ -297,7 +333,6 @@
                   current[1](module);
                   currentScope = old;
                   load.isLoading = false;
-                  updateState(module);
                   load.bulkLoad();
                });
 
@@ -338,7 +373,6 @@
 	Jx.GLOBAL = GLOBAL;
 
 	Jx.module = function (url) {
-
       var list = MODULES;
 
       var o, access;

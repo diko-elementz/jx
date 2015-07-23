@@ -186,7 +186,14 @@ Jx('jx', 'jxExtensions', function (Jx) {
              * create promise that settles after first promise in
              * iteratable is resolved or rejected
              */
-            race: function () {
+            race: function (iteratable) {
+
+               if (Jx.isArray(iteratable)) {
+
+
+
+               }
+
             },
             /**
              * create promise that rejects with the given reason
@@ -281,8 +288,6 @@ Jx('jx', 'jxExtensions', function (Jx) {
    };
 
    Jx.assign(this, Promise);
-
-   console.log(this);
 
 
 });

@@ -9,7 +9,7 @@ Jx.setBaseUrl('../source/');
 
 Jx.use('jxPromise', function (Promise) {
 
-   console.log('promise', Promise.Promise);
+   console.log('promise', this.status);
 
    Promise.create(function (resolve, reject) {
 
@@ -36,20 +36,13 @@ Jx.use('jxPromise', function (Promise) {
 
 Jx.use('jxPromise', function (Promise) {
 
-   console.log('next: ', Promise.Promise);
+   console.log('next: ', this.status);
 
-   Promise.all([
-      Promise.create(function (resolve, reject) {
-         resolve('buang!');
-      }),
-      Promise.create(function (resolve, reject) {
-         resolve('ka!');
-      })
-   ]).then(function (values) {
-      console.log('found! ', values);
-   });
+});
 
+Jx.use('jxPromise', function (Promise) {
 
+   console.log('next 2: ', this.status);
 });
 
 
