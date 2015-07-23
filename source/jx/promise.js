@@ -3,6 +3,7 @@
 Jx('jx', 'jxExtensions', function (Jx) {
 
    var GLOBAL = Jx.GLOBAL;
+
    var Promise;
 
    // use global promise
@@ -192,9 +193,7 @@ Jx('jx', 'jxExtensions', function (Jx) {
              * iteratable is resolved or rejected
              */
             race: function (iteratable) {
-               var l, count, promise, winner, createRacer, resolved, value;
-
-               var resolver, rejector, newPromise;
+               var l, count, promise, winner, resolver, rejector, newPromise;
 
                if (Jx.isArray(iteratable)) {
 
@@ -205,29 +204,24 @@ Jx('jx', 'jxExtensions', function (Jx) {
                      rejector = reject;
                   });
 
-                  createRacer = function (current) {
-                     current.
-                        then(function (data) {
-                           if (!winner) {
-                              winner = true;
-                              resolver(data);
-                           }
-                           return data;
-                        },
-                        function (reason) {
-                           if (!winner) {
-                              winner = true;
-                              rejector(reason);
-                           }
-                           throw reason;
-                        });
-
-                  };
-
                   for (count = 0, l = iteratable.length; l--;) {
                      promise = iteratable[count++];
                      if (isThenable(promise)) {
-                        createRacer(promise);
+                        promise.
+                           then(function (data) {
+                              if (!winner) {
+                                 winner = true;
+                                 resolver(data);
+                              }
+                              return data;
+                           },
+                           function (reason) {
+                              if (!winner) {
+                                 winner = true;
+                                 rejector(reason);
+                              }
+                              throw reason;
+                           });
                      }
                   }
 
