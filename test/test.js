@@ -11,38 +11,16 @@ Jx.use('jxPromise', function (Promise) {
 
    console.log('promise', this.status);
 
-   Promise.create(function (resolve, reject) {
-
-      resolve('yes!');
-
-   }).
-   then(
+   Promise.race([
+      Promise.resolve('test'),
+      Promise.resolve('test1'),
+   ]).then(
       function (data) {
-         return Promise.create(function (resolve, reject) {
-            resolve('inner yes!');
-         });
+         console.log('payter!', data);
       },
       function (reason) {
-         console.log('rejected! ', reason);
-      }).
-   then(
-      function (data) {
-         console.log('sub resolved! ', data);
-         return data;
+         console.log('guba!', reason);
       });
-
-});
-
-
-Jx.use('jxPromise', function (Promise) {
-
-   console.log('next: ', this.status);
-
-});
-
-Jx.use('jxPromise', function (Promise) {
-
-   console.log('next 2: ', this.status);
 });
 
 

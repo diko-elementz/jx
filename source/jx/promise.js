@@ -127,10 +127,15 @@ Jx('jx', 'jxExtensions', function (Jx) {
             };
 
             me.$$processor = processor;
-            unsettled[createId()] = processor;
-            unsettledCount++;
 
-            runProcess();
+            // try first
+            processor();
+
+            if (processor.status != EXEC_SETTLED) {
+               unsettled[createId()] = processor;
+               unsettledCount++;
+               runProcess();
+            }
 
             return me;
 
@@ -169,7 +174,7 @@ Jx('jx', 'jxExtensions', function (Jx) {
                      }
                   }
 
-                  if (newPromise) {
+                  if (count && newPromise) {
 
                      return newPromise.then(function () {
                               return values;
@@ -187,12 +192,54 @@ Jx('jx', 'jxExtensions', function (Jx) {
              * iteratable is resolved or rejected
              */
             race: function (iteratable) {
+               var l, count, promise, winner, createRacer, resolved, value;
+
+               var resolver, rejector, newPromise;
 
                if (Jx.isArray(iteratable)) {
 
+                  winner = false;
 
+                  newPromise = new Promise(function (resolve, reject) {
+                     resolver = resolve;
+                     rejector = reject;
+                  });
+
+                  createRacer = function (current) {
+                     current.
+                        then(function (data) {
+                           if (!winner) {
+                              winner = true;
+                              resolver(data);
+                           }
+                           return data;
+                        },
+                        function (reason) {
+                           if (!winner) {
+                              winner = true;
+                              rejector(reason);
+                           }
+                           throw reason;
+                        });
+
+                  };
+
+                  for (count = 0, l = iteratable.length; l--;) {
+                     promise = iteratable[count++];
+                     if (isThenable(promise)) {
+                        createRacer(promise);
+                     }
+                  }
+
+                  if (count) {
+
+                     return newPromise;
+
+                  }
 
                }
+
+               return Promise.reject('Invalid Promise arguments');
 
             },
             /**
@@ -213,6 +260,7 @@ Jx('jx', 'jxExtensions', function (Jx) {
                               resolve(data);
                            });
             }
+
          });
 
          Jx.assign(Promise.prototype, {
