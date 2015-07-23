@@ -11,7 +11,7 @@ Jx.use('jxPromise', function (Promise) {
 
    console.log('promise', this.status);
 
-   Promise.race([
+   Promise.all([
       Promise.resolve('test'),
       Promise.resolve('test1'),
    ]).then(

@@ -171,7 +171,8 @@ Jx('jx', 'jxExtensions', function (Jx) {
                   for (l = iteratable.length; l--;) {
                      promise = iteratable[l];
                      if (isThenable(promise)) {
-                        newPromise = createPromise(count++, promise);
+                        count++;
+                        newPromise = createPromise(l, promise);
                      }
                   }
 
@@ -193,7 +194,7 @@ Jx('jx', 'jxExtensions', function (Jx) {
              * iteratable is resolved or rejected
              */
             race: function (iteratable) {
-               var l, count, promise, winner, resolver, rejector, newPromise;
+               var l, c, count, promise, winner, resolver, rejector, newPromise;
 
                if (Jx.isArray(iteratable)) {
 
@@ -204,9 +205,10 @@ Jx('jx', 'jxExtensions', function (Jx) {
                      rejector = reject;
                   });
 
-                  for (count = 0, l = iteratable.length; l--;) {
-                     promise = iteratable[count++];
+                  for (c = -1, count = 0, l = iteratable.length; l--;) {
+                     promise = iteratable[++c];
                      if (isThenable(promise)) {
+                        count++;
                         promise.
                            then(function (data) {
                               if (!winner) {
