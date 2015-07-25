@@ -2,14 +2,14 @@
 
 Jx('jx', 'jxExtensions', function (Jx) {
 
-   this.extend = function (Class, properties) {
-      var J = Jx;
-      if (J.isFunction(Class) && J.isObject(properties)) {
+    this.extend = function (Class, properties) {
+        var J = Jx;
+        if (J.isFunction(Class) && J.isObject(properties)) {
 
-         //Jx.each(properties, assignProperties, Class);
+            //Jx.each(properties, assignProperties, Class);
 
-      }
-      return void(0);
-   };
+        }
+        return void(0);
+    };
 
 });
