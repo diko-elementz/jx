@@ -11,9 +11,22 @@ Jx.use('jxPromise', function (Promise) {
 
    console.log('promise', this.status);
 
-   Promise.all([
-      Promise.resolve('test'),
-      Promise.resolve('test1'),
+   Promise.race([
+      Promise.create(function (resolve, reject) {
+         setTimeout(function () {
+            resolve('test1');
+         }, 600);
+      }),
+      Promise.create(function (resolve, reject) {
+         setTimeout(function () {
+            resolve('test2');
+         }, 1000);
+      }),
+      Promise.create(function (resolve, reject) {
+         setTimeout(function () {
+            reject('test3');
+         }, 300);
+      })
    ]).then(
       function (data) {
          console.log('payter!', data);

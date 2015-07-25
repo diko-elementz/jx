@@ -2,325 +2,322 @@
 
 Jx('jx', 'jxExtensions', function (Jx) {
 
-   var GLOBAL = Jx.GLOBAL;
+   var GLOBAL = Jx.GLOBAL,
+      EXEC_PENDING = 1,
+      EXEC_RESOLVED = 2,
+      EXEC_REJECTED = 3,
+      EXEC_SETTLED = 4,
 
-   var Promise;
+      genId = 0,
+      unsettled = {},
+      unsettledCount = 0,
+      processing = false;
 
-   // use global promise
-   if (false) { //'Promise' in GLOBAL) {  // need to test Promise emulator
 
-      Promise = GLOBAL.Promise;
+   function emptyFn() {};
+
+   function defaultOnFulfill(value) {
+      return value;
+   }
+
+   function defaultOnReject(reason) {
+      throw reason;
+   }
+
+   function isThenable(value) {
+      var J = Jx;
+      return J.isObject(value) && J.isFunction(value.then);
+   }
+
+   function createId() {
+      var id = genId;
+      var list = unsettled;
+      for (; id--;) {
+         if (!(id in list)) {
+            return id;
+         }
+      }
+      return ++genId;
+   }
+
+   function runProcess() {
+      var list = unsettled,
+         J = Jx;
+      var id, process;
+      if (unsettledCount && !processing) {
+         processing = true;
+         for (id in list) {
+            process = list[id];
+            if (process() && process.status === EXEC_SETTLED) {
+               unsettledCount--;
+               delete list[id];
+            }
+         }
+         processing = false;
+      }
+   }
+
+   function Promise(executor) {
+      var me = this;
+      var processor;
+
+      if (!(me instanceof Promise)) {
+         return new Promise(executor);
+      }
+
+      processor = function () {
+         var current = processor,
+            status = null;
+
+         while (status !== current.status) {
+            // has status change
+            if (status) {
+               Jx.nextTick(runProcess);
+            }
+            switch (status = current.status) {
+            case EXEC_SETTLED:
+               return true;
+
+            case EXEC_RESOLVED:
+            case EXEC_REJECTED:
+               processor.status = EXEC_SETTLED;
+               break;
+
+            case EXEC_PENDING:
+               try {
+                  executor.call(null, current.resolve, current.reject);
+               }
+               catch (e) {
+                  current.reject(e);
+               }
+            }
+         }
+         return false;
+
+      };
+
+      processor.status = EXEC_PENDING;
+
+      processor.resolve = function (data) {
+         var status = processor.status;
+         if (status !== EXEC_SETTLED) {
+            processor.status = EXEC_RESOLVED;
+            processor.settle = function (callback) {
+               callback(data, true);
+            };
+         }
+         runProcess();
+      };
+
+      processor.reject = function (reason) {
+         var status = processor.status;
+         if (status !== EXEC_SETTLED) {
+            processor.status = EXEC_REJECTED;
+            processor.settle = function (callback) {
+               callback(reason, false);
+            };
+         }
+         runProcess();
+      };
+
+      me.$$processor = processor;
+
+      // try first
+      processor();
+
+      if (processor.status != EXEC_SETTLED) {
+         unsettled[createId()] = processor;
+         unsettledCount++;
+         runProcess();
+      }
+
+      return me;
 
    }
-   // custom Promise
-   else {
 
-      Promise = (function () {
+   // static properties
+   Jx.assign(Promise, {
+      /**
+       * create promise that is resolved when all promises in
+       * iteratable is resolved.
+       */
+      all: function (iteratable) {
+         var newPromise = null;
 
-         var EXEC_PENDING = 1,
-            EXEC_RESOLVED = 2,
-            EXEC_REJECTED = 3,
-            EXEC_SETTLED = 4,
+         var promise, createPromise, l, c, values, count, applied;
 
-            genId = 0,
-            unsettled = {},
-            unsettledCount = 0,
-            processing = false;
+         if (Jx.isArray(iteratable)) {
 
-         function emptyFn() {};
+            count = 0;
+            values = [];
 
-         function defaultOnFulfill(value) {
-            return value;
-         }
+            createPromise = function (index, promise) {
 
-         function defaultOnReject(reason) {
-            throw reason;
-         }
+                  promise = promise.
+                              then(function(data) {
+                                 values[index] = data;
+                                 return data;
+                              });
 
-         function isThenable(value) {
-            var J = Jx;
-            return J.isObject(value) && J.isFunction(value.then);
-         }
+                  return !newPromise ? promise :
+                           newPromise.
+                              then(function() {
+                                 return promise;
+                              });
 
-         function createId() {
-            var id = genId;
-            var list = unsettled;
-            for (; id--;) {
-               if (!(id in list)) {
-                  return id;
+               };
+
+            for (c = -1, l = iteratable.length; l--;) {
+               promise = iteratable[++c];
+               if (isThenable(promise)) {
+                  newPromise = createPromise(count++, promise);
                }
             }
-            return ++genId;
+
+            if (count) {
+
+               return newPromise.
+                        then(function () {
+                           return values;
+                        },
+                        function (reason) {
+                           values.splice(0, values.length); // clear
+                           values = null;
+                           throw reason;
+                        });
+
+            }
+
          }
 
-         function runProcess() {
-            var list = unsettled,
-               J = Jx;
-            var id, process;
-            if (unsettledCount && !processing) {
-               processing = true;
-               for (id in list) {
-                  process = list[id];
-                  if (process()) {
-                     unsettledCount--;
-                     delete list[id];
-                  }
+         return Promise.reject('Invalid iteratable Promises argument');
+
+      },
+      /**
+       * create promise that settles after first promise in
+       * iteratable is resolved or rejected
+       */
+      race: function (iteratable) {
+         var l, c, added, promise, newPromise, processor,
+            onFulfill, onReject, ended;
+
+         if (Jx.isArray(iteratable)) {
+            ended = false;
+            added = false;
+            newPromise = new Promise(emptyFn);
+            processor = newPromise.$$processor;
+
+            onFulfill = function (data) {
+               if (!ended) {
+                  ended = true;
+                  processor.resolve(data);
                }
-               processing = false;
+               return data;
+            };
+            onReject = function (reason) {
+               if (!ended) {
+                  ended = true;
+                  processor.reject(reason);
+               }
+               throw reason;
+            };
+
+            for (c = -1, l = iteratable.length; l--;) {
+               promise = iteratable[++c];
+               if (isThenable(promise)) {
+                  added = true;
+                  promise.then(onFulfill, onReject);
+               }
             }
+
+            if (added) {
+
+               return newPromise;
+
+            }
+
          }
 
-         function Promise(executor) {
-            var me = this;
-            var processor;
+         return Promise.reject('Invalid iteratable Promises argument');
 
-            if (!(me instanceof Promise)) {
-               return new Promise(executor);
-            }
+      },
+      /**
+       * create promise that rejects with the given reason
+       */
+      reject: function (reason) {
+         return new Promise(
+                     function (resolve, reject) {
+                        reject(reason);
+                     });
+      },
+      /**
+       * create promise that resolves with the given data
+       */
+      resolve: function (data) {
+         return new Promise(
+                     function (resolve, reject) {
+                        resolve(data);
+                     });
+      }
 
-            processor = function () {
-               var current = processor,
-                  status = null;
+   });
 
-               while (status !== current.status) {
-                  // has status change
-                  if (status) {
-                     Jx.nextTick(runProcess);
-                  }
-                  switch (status = current.status) {
-                  case EXEC_SETTLED:
-                     return true;
+   Jx.assign(Promise.prototype, {
 
-                  case EXEC_RESOLVED:
-                  case EXEC_REJECTED:
-                     processor.status = EXEC_SETTLED;
-                     break;
+      constructor: Promise,
 
-                  case EXEC_PENDING:
+      then: function (onFulfilled, onReject) {
+
+         var processor = this.$$processor,
+            J = Jx,
+            applied = false;
+
+         onFulfilled = J.isFunction(onFulfilled) ?
+                                    onFulfilled : defaultOnFulfill;
+
+         onReject = J.isFunction(onReject) ?
+                                 onReject : defaultOnReject;
+
+         function executor(resolve, reject) {
+            var parent = processor;
+            if (!applied && parent.status == EXEC_SETTLED) {
+               applied = true;
+               parent.settle(function (data, resolved) {
+                  if (resolved) {
                      try {
-                        executor.call(null, current.resolve, current.reject);
+                        data = onFulfilled.call(null, data);
                      }
                      catch (e) {
-                        current.reject(e);
+                        data = e;
+                        resolved = false;
                      }
                   }
-               }
-               return false;
-
-            };
-
-            processor.status = EXEC_PENDING;
-
-            processor.resolve = function (data) {
-               processor.status = EXEC_RESOLVED;
-               processor.settle = function (callback) {
-                  callback(data, true);
-               };
-               runProcess();
-            };
-
-            processor.reject = function (reason) {
-               processor.status = EXEC_REJECTED;
-               processor.settle = function (callback) {
-                  callback(data, false);
-               };
-               runProcess();
-            };
-
-            me.$$processor = processor;
-
-            // try first
-            processor();
-
-            if (processor.status != EXEC_SETTLED) {
-               unsettled[createId()] = processor;
-               unsettledCount++;
-               runProcess();
+                  else {
+                     try {
+                        onReject.call(null, data);
+                     }
+                     catch (e) {
+                        data = e;
+                        resolved = false;
+                     }
+                  }
+                  if (!resolved) {
+                     reject(data);
+                  }
+                  else if (isThenable(data)) {
+                     data.then(resolve, reject);
+                  }
+                  else {
+                     resolve(data);
+                  }
+               });
             }
-
-            return me;
-
          }
 
-         // static properties
-         Jx.assign(Promise, {
-            /**
-             * create promise that is resolved when all promises in
-             * iteratable is resolved.
-             */
-            all: function (iteratable) {
-               var count = 0,
-                  values = [],
-                  newPromise = null;
+         return new Promise(executor);
+      }
 
-               var promise, createPromise, l;
-
-               if (Jx.isArray(iteratable)) {
-                  createPromise = function (index, promise) {
-                        return promise.then(
-                           function (data) {
-                              values[index] = data;
-                              return data;
-                           },
-                           function (reason) {
-                              values.splice(0, values.length); // clear
-                              throw reason;
-                           });
-                     };
-
-                  for (l = iteratable.length; l--;) {
-                     promise = iteratable[l];
-                     if (isThenable(promise)) {
-                        count++;
-                        newPromise = createPromise(l, promise);
-                     }
-                  }
-
-                  if (count && newPromise) {
-
-                     return newPromise.then(function () {
-                              return values;
-                           });
-
-                  }
-
-               }
-
-               return Promise.reject('Invalid Promise arguments');
-
-            },
-            /**
-             * create promise that settles after first promise in
-             * iteratable is resolved or rejected
-             */
-            race: function (iteratable) {
-               var l, c, count, promise, winner, resolver, rejector, newPromise;
-
-               if (Jx.isArray(iteratable)) {
-
-                  winner = false;
-
-                  newPromise = new Promise(function (resolve, reject) {
-                     resolver = resolve;
-                     rejector = reject;
-                  });
-
-                  for (c = -1, count = 0, l = iteratable.length; l--;) {
-                     promise = iteratable[++c];
-                     if (isThenable(promise)) {
-                        count++;
-                        promise.
-                           then(function (data) {
-                              if (!winner) {
-                                 winner = true;
-                                 resolver(data);
-                              }
-                              return data;
-                           },
-                           function (reason) {
-                              if (!winner) {
-                                 winner = true;
-                                 rejector(reason);
-                              }
-                              throw reason;
-                           });
-                     }
-                  }
-
-                  if (count) {
-
-                     return newPromise;
-
-                  }
-
-               }
-
-               return Promise.reject('Invalid Promise arguments');
-
-            },
-            /**
-             * create promise that rejects with the given reason
-             */
-            reject: function (reason) {
-               return new Promise(
-                           function (resolve, reject) {
-                              reject(reason);
-                           });
-            },
-            /**
-             * create promise that resolves with the given data
-             */
-            resolve: function (data) {
-               return new Promise(
-                           function (resolve, reject) {
-                              resolve(data);
-                           });
-            }
-
-         });
-
-         Jx.assign(Promise.prototype, {
-
-            constructor: Promise,
-
-            then: function (onFulfilled, onReject) {
-
-               var processor = this.$$processor,
-                  J = Jx,
-                  applied = false;
-
-               onFulfilled = J.isFunction(onFulfilled) ?
-                                          onFulfilled : defaultOnFulfill;
-
-               onReject = J.isFunction(onReject) ?
-                                       onReject : defaultOnReject;
-
-               function executor(resolve, reject) {
-                  var parent = processor;
-                  if (!applied && parent.status == EXEC_SETTLED) {
-                     applied = true;
-                     parent.settle(function (data, resolved) {
-                        if (resolved) {
-                           try {
-                              data = onFulfilled.call(null, data);
-                           }
-                           catch (e) {
-                              data = e;
-                              resolved = false;
-                           }
-                        }
-                        else {
-                           try {
-                              onReject.call(null, data);
-                           }
-                           catch (e) {
-                              data = e;
-                              resolved = false;
-                           }
-                        }
-                        if (!resolved) {
-                           reject(data);
-                        }
-                        else if (isThenable(data)) {
-                           data.then(resolve, reject);
-                        }
-                        else {
-                           resolve(data);
-                        }
-                     });
-                  }
-               }
-
-               return new Promise(executor);
-            }
-
-         });
-
-         return Promise;
-
-      })();
-
-   }
+   });
 
    // export
    this.Promise = Promise;
