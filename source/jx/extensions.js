@@ -85,7 +85,7 @@ Jx('jx', function (J) {
             }
          }
          return obj;
-      }
+      };
    }
 
    this.each = each;
@@ -177,7 +177,7 @@ Jx('jx', function (J) {
          this.nextTick = function (callback) {
             console.log('timers are not supported in this nodejs build');
             callback();
-         }
+         };
       }
    case 'browser':
       if ('setImmediate' in GLOBAL) {
