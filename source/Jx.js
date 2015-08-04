@@ -1,4 +1,5 @@
 'use strict';
+'root module';
 
 (function () {
 
@@ -236,7 +237,7 @@
 
                 updateCallback(CALLBACK_DECLARATION_PRIORITY, module.name,
                     function (module) {
-                        callback.apply(module.exports, params);
+                        callback.apply(module, params);
                     });
             }
 

@@ -323,15 +323,6 @@ Jx('jx', 'jxExtensions', function (Jx) {
     });
 
     // export
-    this.Promise = Promise;
-
-    this.create = function (executor) {
-
-        return new Promise(executor);
-
-    };
-
-    Jx.assign(this, Promise);
-
+    this.exports = Promise;
 
 });

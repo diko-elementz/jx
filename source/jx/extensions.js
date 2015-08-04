@@ -8,6 +8,7 @@ Jx('jx', function (J) {
         tickQueue = {},
         tickIdGen = 0,
         GLOBAL = Jx.GLOBAL,
+        exports = this.exports,
         unenumerables = (function (isEnumerable) {
             var sample = {},
                 names = ['constructor',
@@ -91,9 +92,9 @@ Jx('jx', function (J) {
         };
     }
 
-    this.each = each;
+    exports.each = each;
 
-    this.assign = function (obj) {
+    exports.assign = function (obj) {
         var l = arguments.length - 1;
         var c = 0;
         for (; l--;) {
@@ -102,7 +103,7 @@ Jx('jx', function (J) {
         return obj;
     };
 
-    this.assignAll = function (obj) {
+    exports.assignAll = function (obj) {
         var l = arguments.length - 1;
         var c = 0;
         for (; l--;) {
@@ -111,7 +112,7 @@ Jx('jx', function (J) {
         return obj;
     };
 
-    this.clearObject = function () {
+    exports.clearObject = function () {
         var l = arguments.length;
         for (; l--;) {
             each(arguments[l], clearCallback);
@@ -119,35 +120,35 @@ Jx('jx', function (J) {
         return this;
     };
 
-    this.is = function (obj, type) {
+    exports.is = function (obj, type) {
         return toString.call(obj) == '[object ' + type + ']';
     };
 
-    this.isObject = function (obj) {
+    exports.isObject = function (obj) {
         return !!obj && toString.call(obj) == '[object Object]';
     };
 
-    this.isFunction = function (obj) {
+    exports.isFunction = function (obj) {
         return !!obj && toString.call(obj) == '[object Function]';
     };
 
-    this.isString = function (obj) {
+    exports.isString = function (obj) {
         return typeof obj == 'string';
     };
 
-    this.isArray = function (obj) {
+    exports.isArray = function (obj) {
         return !!obj && toString.call(obj) == '[object Array]';
     };
 
-    this.isDate = function (obj) {
+    exports.isDate = function (obj) {
         return !!obj && toString.call(obj) == '[object Date]';
     };
 
-    this.isNumber = function (obj) {
+    exports.isNumber = function (obj) {
         return typeof obj == 'number' && isFinite(obj);
     };
 
-    this.isEmpty = function (obj) {
+    exports.isEmpty = function (obj) {
         switch (toString.call(obj)) {
             case '[object RegExp]':
                 return !obj.source;
@@ -162,7 +163,7 @@ Jx('jx', function (J) {
         }
     };
 
-    this.exit = function (callback) {
+    exports.exit = function (callback) {
         var list;
         if (J.isFunction(callback)) {
             list = exitCallback;
@@ -172,39 +173,32 @@ Jx('jx', function (J) {
     };
 
     // TODO: execute exit callbacks as soon as app exits;
+    if ('setImmediate' in GLOBAL) {
+        exports.nextTick = GLOBAL.setImmediate;
 
-    switch (J.platform) {
-        case 'nodejs':
-            if ('setImmediate' in GLOBAL) {
-                this.nextTick = setImmediate;
-            } else if (GLOBAL.process && 'nextTick' in process) {
-                this.nextTick = process.nextTick;
-            } else {
-                this.nextTick = function (callback) {
-                    console.log(
-                        'timers are not supported in this nodejs build'
-                    );
-                    callback();
-                };
-            }
-        case 'browser':
-            if ('setImmediate' in GLOBAL) {
-                this.nextTick = setImmediate;
-            } else {
-                this.nextTick = function (callback) {
-                    setTimeout(callback, 10);
-                };
-            }
-            break;
+    }
+    else if ('process' in GLOBAL &&
+        exports.isFunction(process) &&
+        'nextTick' in process) {
+        exports.nextTick = process.nextTick;
+
+    }
+    else if ('setTimeout' in GLOBAL) {
+        exports.nextTick = function (callback) {
+            GLOBAL.setTimeout(callback, 10);
+        };
+
+    }
+    else {
+        exports.nextTick = function (callback) {
+            console.log(
+                'timers are not supported in this nodejs build'
+            );
+            callback();
+        };
     }
 
-
-
-
-
-
-
     // apply to jx
-    this.assign(J, this);
+    exports.assign(J, exports);
 
 });

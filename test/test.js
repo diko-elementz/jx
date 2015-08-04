@@ -7,24 +7,48 @@ if (typeof require != 'undefined') {
 Jx.setBaseUrl('../source/');
 
 
+Jx.use('jxClass', function (Class) {
+
+   var Sub;
+
+   function Base() {
+      console.log('base! ', this);
+   }
+
+   Base.prototype.name = 'Base';
+
+   Sub = Class.extend(Base, {
+
+      name: 'sub',
+      constructor: function () {
+         this.$super(arguments);
+         console.log('this is sub');
+
+      }
+   });
+
+   console.log(Jx.GLOBAL.sub = new Sub());
+
+});
+
 Jx.use('jxPromise', function (Promise) {
 
    console.log('promise', this.status);
 
-   Promise.race([
-      Promise.create(function (resolve, reject) {
+   Promise.all([
+      Promise(function (resolve, reject) {
          setTimeout(function () {
             resolve('test1');
          }, 600);
       }),
-      Promise.create(function (resolve, reject) {
+      Promise(function (resolve, reject) {
          setTimeout(function () {
             resolve('test2');
          }, 1000);
       }),
-      Promise.create(function (resolve, reject) {
+      Promise(function (resolve, reject) {
          setTimeout(function () {
-            reject('test3');
+            resolve('test3');
          }, 300);
       })
    ]).then(
@@ -38,23 +62,23 @@ Jx.use('jxPromise', function (Promise) {
 
 
 
-//Jx.use('jxExtensions', function (J) {
-//
-//   var c = 0;
-//   var id = J.nextTick(function () {
-//      c++;
-//      if (c > 3000) {
-//         J.clearTick(id);
-//         id = 0;
-//      }
-//      else {
-//         console.log('tick!', c);
-//      }
-//   }, 10);
-//
-//
-//
-//});
+Jx.use('jxExtensions', function (J) {
+
+   var c = 0;
+   var id = J.nextTick(function () {
+      c++;
+      if (c > 3000) {
+         J.clearTick(id);
+         id = 0;
+      }
+      else {
+         console.log('tick!', c);
+      }
+   }, 10);
+
+
+
+});
 
 
 
