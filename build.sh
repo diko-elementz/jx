@@ -12,7 +12,7 @@ main_exec() {
     ROOT=$(readlink -f $(dirname $0))
     MERGER="$ROOT/tools/merge.js"
     SOURCE="$ROOT/source/jx.js"
-    TARGET="$ROOT/output/jx.min.js"
+    TARGET="$ROOT/output/jx.js"
 
     if [ $# -gt 1 ]; then
         TARGET="$2"
@@ -75,7 +75,7 @@ main_exec() {
     echo "#####################################"
     echo
     echo "1. Linting with gjslint"
-    js_lint $(dirname "$SOURCE") || return 4
+    js_lint "$SOURCE" || return 4
 
     echo
     echo "2. Merging with merge.js"
@@ -88,7 +88,9 @@ main_exec() {
     echo
     echo "*** Build Success ***"
     echo
-    echo "output file: $TARGET"
+    echo "    output file: $TARGET"
+    echo "    minfied file:" $(ext_remove "$TARGET")".min.js"
+    echo
     return 0
 }
 
@@ -139,6 +141,9 @@ check_directory_readable() {
     return 0
 }
 
+##################################
+# check files
+##################################
 check_file() {
     [ -n "$1" ] || return 1
     [ -f "$1" ] || return 2
@@ -162,14 +167,43 @@ check_file_readable() {
 }
 
 ##################################
+# js file extensions
+##################################
+ext_add() {
+    [ -n "$1" ] || return 1
+    echo "$1" | sed -r 's/\.js$/.js/i'
+    return 0
+}
+
+ext_remove() {
+    [ -n "$1" ] || return 1
+    echo "$1" | sed -r 's/\.js$//i'
+    return 0
+}
+
+##################################
 # lint
 ##################################
 js_lint() {
-    find "$1" -regex ".*\.js" | while read file; do
-        printf "linting: $file ... "
+    DIR=$(ext_remove "$1")
+
+    # lint main file
+    printf "    linting: $1 ... "
+    if ! ERROR=$(gjslint --disable 0001 "$1" 2>&1); then
+        echo "Failed.\n"
+        echo "  [!] $ERROR"
+        return 1
+    fi
+    echo "Ok."
+
+    # continue if directory
+    check_directory_readable "$DIR" || return 0
+
+    find "$DIR" -regex ".*\.js" | while read file; do
+        printf "    linting: $file ... "
         if ! ERROR=$(gjslint --disable 0001 "$file" 2>&1); then
             echo "Failed.\n"
-            echo "[!] $ERROR"
+            echo "  [!] $ERROR"
             return 1
         fi
         echo "Ok."
@@ -181,13 +215,20 @@ js_lint() {
 # merge
 ##################################
 js_merge() {
-    printf "merging package to: $3 ... "
-    if ! ERROR=$(nodejs "$1" "$2" "$3" 2>&1); then
+    BASE=$(ext_remove "$3")
+    MERGE_FILE="$BASE.js"
+
+    printf "    merging package to: $3 ... "
+    if ! ERROR=$(nodejs "$1" "$2" "$MERGE_FILE" 2>&1); then
         echo "Failed.\n"
-        echo "[!] $ERROR"
+        echo "  [!] $ERROR"
         return 1
     fi
     echo "Ok."
+
+    # duplicate
+    cp "$MERGE_FILE" "$BASE.min.js"
+
     return 0
 }
 
@@ -195,10 +236,12 @@ js_merge() {
 # uglify
 ##################################
 js_uglify() {
-    printf "minifying merged package: $1 ... "
-    if ! ERROR=$(uglifyjs --overwrite "$1" 2>&1); then
+    BASE=$(ext_remove "$1")
+    MIN_FILE="$BASE.min.js"
+    printf "    minifying merged package: $1 ... "
+    if ! ERROR=$(uglifyjs --overwrite "$MIN_FILE" 2>&1); then
         echo "Failed.\n"
-        echo "[!] $ERROR"
+        echo "  [!] $ERROR"
         return 1
     fi
     echo "Ok."
