@@ -77,6 +77,11 @@ Jx('jx', 'jxExtensions', function (Jx) {
 
         }
 
+        if (J.isObject(SuperClass)) {
+            properties = SuperClass;
+            SuperClass = O;
+        }
+
         if (J.isFunction(SuperClass) && J.isObject(properties)) {
 
             empty.prototype;

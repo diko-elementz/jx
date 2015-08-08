@@ -29,6 +29,12 @@ Jx.use('jxClass', function (Class) {
 
    console.log(Jx.GLOBAL.sub = new Sub());
 
+   Sub = Class.extend({
+      name: 'from Object'
+   });
+
+   console.log(Jx.GLOBAL.subObject = new Sub());
+
 });
 
 Jx.use('jxPromise', function (Promise) {

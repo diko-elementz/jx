@@ -1,5 +1,4 @@
 'use strict';
-'root module';
 
 (function () {
 

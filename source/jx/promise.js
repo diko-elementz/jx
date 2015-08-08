@@ -1,6 +1,6 @@
 'use strict';
 
-Jx('jx', 'jxExtensions', function (Jx) {
+Jx('jx', 'jxClass', function (Jx, Class) {
 
     var GLOBAL = Jx.GLOBAL,
         EXEC_PENDING = 1,
