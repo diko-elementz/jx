@@ -1092,3 +1092,12 @@ Jx('jx', 'jxClass', function (Jx, Class) {
 });
 });
 
+Jx.inline("jxCode", function () {
+Jx('jxExtensions', function () {
+
+   Jx.assign(this.exports, {
+   });
+
+});
+});
+
