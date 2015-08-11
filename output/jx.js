@@ -445,6 +445,7 @@
     });
 
 })();
+
 Jx.inline("jxExtensions", function () {'use strict';
 
 Jx('jx', function (J) {

@@ -9,18 +9,27 @@ main_exec() {
 
 # setup paths
     # defaults
-    ROOT=$(readlink -f $(dirname $0))
+    ROOT=$(readlink -m $(dirname $0))
     MERGER="$ROOT/tools/merge.js"
     SOURCE="$ROOT/source/jx.js"
     TARGET="$ROOT/output/jx.js"
 
+    # resolve target
     if [ $# -gt 1 ]; then
         TARGET="$2"
     fi
 
+    # resolve source
     if [ $# -gt 0 ]; then
         SOURCE="$1"
     fi
+
+    # get SOURCE ROOT
+    SOURCE_DIR=$(readlink -m $(dirname $SOURCE))
+    KARMA_CONFIG="$SOURCE_DIR/karma.conf.js"
+
+    #echo "root: $ROOT_DIR"
+
 
 # check softwares
     echo
@@ -29,8 +38,15 @@ main_exec() {
     echo "#####################################"
 
     check_required "nodejs" "https://nodejs.org/download" || return 1
+    check_required "npm" "https://docs.npmjs.com" || return 1
     check_required "gjslint" "https://developers.google.com/closure/utilities/docs/linter_howto" || return 1
     check_required "uglifyjs" "https://github.com/mishoo/UglifyJS" || return 1
+
+    check_npm_required "karma-cli" "https://github.com/shorttompkins/gettingstarted-karma" || return 1
+    check_npm_required "karma-jasmine" "https://github.com/shorttompkins/gettingstarted-karma" || return 1
+    check_npm_required "phantomjs" "https://github.com/shorttompkins/gettingstarted-karma" || return 1
+    check_required "karma" "https://github.com/karma-runner/karma-phantomjs-launcher" || return 1
+
 
 # check directories
     echo
@@ -68,7 +84,7 @@ main_exec() {
     fi
     echo "Ok"
 
-# lint
+# build
     echo
     echo "#####################################"
     echo "# Build JS:                         #"
@@ -78,11 +94,15 @@ main_exec() {
     js_lint "$SOURCE" || return 4
 
     echo
-    echo "2. Merging with merge.js"
+    echo "2. Test Jx Specs with Karma-Jasmine-PhantomJS"
+    js_tdd "$KARMA_CONFIG"
+
+    echo
+    echo "3. Merging with merge.js"
     js_merge "$MERGER" "$SOURCE" "$TARGET" || return 5
 
     echo
-    echo "3. Minifying with uglifyjs"
+    echo "4. Minifying with uglifyjs"
     js_uglify "$TARGET" || return 6
 
     echo
@@ -104,6 +124,21 @@ main_exec() {
 check_required() {
     printf "* Checking $1 installation... "
     if type "$1" > /dev/null 2>&1; then
+        echo "Found."
+        return 0
+    fi
+
+    echo "Not Found.\n"
+    echo "[!] Unable to build. Please install $1 in order to proceed to build process.\n"
+    echo "  downloads/documentation can be found at:"
+    echo "    $2"
+    echo
+    return 1
+}
+
+check_npm_required() {
+    printf "* Checking $1 installation... "
+    if npm list "$1" -g | grep "$1" > /dev/null; then
         echo "Found."
         return 0
     fi
@@ -208,6 +243,20 @@ js_lint() {
         fi
         echo "Ok."
     done
+    return 0
+}
+
+##################################
+# test
+##################################
+js_tdd() {
+    printf "    unit test with karma config $1 ... Running ...\n"
+    if ! karma start "$1" --single-run; then
+        echo "Failed.\n"
+        return 1
+    fi
+    echo "Ok.\n"
+
     return 0
 }
 
