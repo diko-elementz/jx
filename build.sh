@@ -95,15 +95,15 @@ main_exec() {
 
     echo
     echo "2. Test Jx Specs with Karma-Jasmine-PhantomJS"
-    js_tdd "$KARMA_CONFIG"
+    js_tdd "$KARMA_CONFIG" || return 5
 
     echo
     echo "3. Merging with merge.js"
-    js_merge "$MERGER" "$SOURCE" "$TARGET" || return 5
+    js_merge "$MERGER" "$SOURCE" "$TARGET" || return 6
 
     echo
     echo "4. Minifying with uglifyjs"
-    js_uglify "$TARGET" || return 6
+    js_uglify "$TARGET" || return 7
 
     echo
     echo "*** Build Success ***"

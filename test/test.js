@@ -7,6 +7,20 @@ if (typeof require != 'undefined') {
 Jx.setBaseUrl('../source/');
 
 
+Jx.use('jxCodeRegexParser', function (Parser) {
+
+   //var parser = new Parser(/[a-z0-9]+[^ab\+\u00f1\xf1]\u00f1\xf1a/);
+
+   var parser = new Parser(/[\u00f1\xf1]a\xf1\u00f1[\-\+]/);
+
+   window.p = parser;
+   //console.log(parser.next());
+
+});
+
+
+/*
+
 Jx.use('jxClass', function (Class) {
 
    var Sub;
@@ -93,7 +107,7 @@ Jx.use('jxExtensions', function (J) {
 
 
 
-
+*/
 
 
 
