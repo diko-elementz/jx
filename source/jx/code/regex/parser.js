@@ -121,6 +121,8 @@ Jx('jxClass', function (Class) {
            }
            this.tokens = [];
            this.buffer = [];
+           this.stack = [];
+           this.queue = [];
         },
 
         tokenize: function () {

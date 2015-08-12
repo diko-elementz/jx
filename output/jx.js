@@ -1133,8 +1133,7 @@ Jx('jxClass', function (Class) {
                 '?': 3,
                 '*': 3,
                 '+': 3,
-                '{}': 3,
-                '(': 4
+                '{}': 3
             };
 
     function escapeFrom(at, subject) {
@@ -1200,8 +1199,12 @@ Jx('jxClass', function (Class) {
         index: 0,
         parseIndex: 0,
         ended: false,
+        parseEnded: false,
         tokens: void(0),
         buffer: void(0),
+
+        stack: void(0),
+        queue: void(0),
 
         constructor: function (subject) {
            if (subject instanceof RegExp) {
@@ -1212,6 +1215,8 @@ Jx('jxClass', function (Class) {
            }
            this.tokens = [];
            this.buffer = [];
+           this.stack = [];
+           this.queue = [];
         },
 
         tokenize: function () {
@@ -1383,25 +1388,53 @@ Jx('jxClass', function (Class) {
         },
 
         next: function () {
+            var P = OPERATOR_PRECEDENCE,
+                stack = this.stack,
+                queue = this.queue,
+                result = this.tokenize();
 
-            var token, name;
+            var token, value, precedence, sl, ql, s;
 
-            for (; token = this.tokenize();) {
-                name = token[0];
-                console.log(name, ' = ', token[1]);
+            if (result) {
+                sl = stack.length;
+                ql = queue.length;
+                token = result[0];
+
                 switch (name) {
+                case '.':
+                case '|':
+                case '?':
+                case '*':
+                case '+':
+                case '{}':
+                    precedence = OPERATOR_PRECEDENCE[name];
+                    if (sl) {
+                        s = stack[sl - 1];
 
+
+
+                    }
+                    else {
+                        this.parseEnded = true;
+                    }
+                    break;
+                default:
+                    break;
                 }
             }
 
             return void(0);
-
         },
 
         reset: function () {
             var list = this.buffer;
             list.splice(0, list.length);
             list = this.tokens;
+            list.splice(0, list.length);
+
+            list = this.stack;
+            list.splice(0, list.length);
+            list = this.queue;
             list.splice(0, list.length);
             delete this.index;
             delete this.parseIndex;
