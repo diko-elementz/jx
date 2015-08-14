@@ -34,6 +34,8 @@ Jx('jxClass', function (Class) {
                 '(': true
             },
         OPERATOR_PRECEDENCE = {
+                '(': 0,
+                ')': 0,
                 '.': 1,
                 '|': 2,
                 '?': 3,
@@ -103,9 +105,9 @@ Jx('jxClass', function (Class) {
 
         subject: '',
         index: 0,
-        parseIndex: 0,
+        error: false,
+
         ended: false,
-        parseEnded: false,
         tokens: void(0),
         buffer: void(0),
 
@@ -132,7 +134,7 @@ Jx('jxClass', function (Class) {
                 bl = buffer.length;
 
             var subject, chr, str, o, token, strlen, index,
-                len, l, strs, stl, to;
+                len, l, strs, stl, to, c;
 
             if (bl) {
 
@@ -184,6 +186,7 @@ Jx('jxClass', function (Class) {
 
                     strs = [];
                     stl = 0;
+                    c = index;
 
                     loop: for (l = len - index; l--;) {
                         chr = subject.charAt(index++);
@@ -197,7 +200,6 @@ Jx('jxClass', function (Class) {
                             }
                             strs[stl++] = o[0];
                             to = o[1];
-                            strlen += to;
                             index += to;
                             l -= to;
                             break;
@@ -207,7 +209,7 @@ Jx('jxClass', function (Class) {
                             strs[stl++] = chr;
                         }
                     }
-
+                    strlen = index - c + 1;
                     str = strs.join('');
                     break;
 
@@ -215,6 +217,7 @@ Jx('jxClass', function (Class) {
                 case '{':
                     strs = [];
                     stl = 0;
+                    c = index;
 
                     loop: for (l = len - index; l--;) {
                         chr = subject.charAt(index++);
@@ -228,7 +231,6 @@ Jx('jxClass', function (Class) {
                             }
                             strs[stl++] = o[0];
                             to = o[1];
-                            strlen += to;
                             index += to;
                             l -= to;
                             break;
@@ -238,6 +240,7 @@ Jx('jxClass', function (Class) {
                             strs[stl++] = chr;
                         }
                     }
+                    strlen = index - c + 1;
                     str = strs.join('');
                     token = RANGE_RE.test(str) ? '{}' : 'ref';
                     break;
@@ -295,41 +298,84 @@ Jx('jxClass', function (Class) {
 
         next: function () {
             var P = OPERATOR_PRECEDENCE,
-                stack = this.stack,
+                tokens = this.tokens,
+                token = void(0),
+                lexeme = void(0),
                 queue = this.queue,
-                result = this.tokenize();
+                ql = queue.length,
+                stack = this.stack,
+                sl = stack.length,
+                error = this.error;
 
-            var token, value, precedence, sl, ql, s;
+            var precedence, s, found;
 
-            if (result) {
-                sl = stack.length;
-                ql = queue.length;
-                token = result[0];
-
-                switch (name) {
-                case '.':
-                case '|':
-                case '?':
-                case '*':
-                case '+':
-                case '{}':
-                    precedence = OPERATOR_PRECEDENCE[name];
-                    if (sl) {
-                        s = stack[sl - 1];
-
-
-
+            if (!ql && !error && (!this.ended || sl)) {
+                loop: for (; token = this.tokenize();) {
+                    name = token[0];
+                    switch (name) {
+                    case '.':
+                    case '|':
+                    case '?':
+                    case '*':
+                    case '+':
+                    case '{}':
+                        token[2] = precedence = P[name];
+                        for (; sl--;) {
+                            s = stack[sl];
+                            if (precedence > s[2]) {
+                                break;
+                            }
+                            queue[ql++] = s;
+                        }
+                        stack[++sl] = token;
+                        stack.length = ++sl;
+                        if (ql) {
+                            break loop;
+                        }
+                        else {
+                            break;
+                        }
+                    case '(':
+                        token[2] = P[name];
+                        stack[sl++] = token;
+                        break;
+                    case ')':   // find '('
+                        found = false;
+                        for (; sl--;) {
+                            s = stack[sl];
+                            if (s[0] == '(') {
+                                sl--;
+                                found = true;
+                                break;
+                            }
+                            queue[ql++] = s;
+                        }
+                        if (!found) { // throw error
+                            error = this.error = true;
+                            break loop;
+                        }
+                        stack.length = ++sl;
+                        queue[ql++] = ['()', '()'];
+                        break loop;
+                    case '$':   // stop!
+                        for (; sl--;) {
+                            queue[ql++] = stack[sl];
+                        }
+                        stack.length = 0;
+                        queue[ql++] = token;
+                        break loop;
+                    default:
+                        queue[ql++] = token;
+                        break loop;
                     }
-                    else {
-                        this.parseEnded = true;
-                    }
-                    break;
-                default:
-                    break;
                 }
             }
 
+            if (!error && ql) {
+                return queue.shift();
+            }
             return void(0);
+
         },
 
         reset: function () {
@@ -343,7 +389,7 @@ Jx('jxClass', function (Class) {
             list = this.queue;
             list.splice(0, list.length);
             delete this.index;
-            delete this.parseIndex;
+            delete this.error;
             delete this.ended;
         }
 

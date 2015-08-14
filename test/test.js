@@ -11,7 +11,7 @@ Jx.use('jxCodeRegexParser', function (Parser) {
 
    //var parser = new Parser(/[a-z0-9]+[^ab\+\u00f1\xf1]\u00f1\xf1a/);
 
-   var parser = new Parser(/[\u00f1\xf1]a\xf1\u00f1[\-\+]/);
+   var parser = new Parser(/ab(de)*/);
    //var parser = new Parser(/[\u00f1\xf1]/);
 
    window.p = parser;
