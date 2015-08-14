@@ -3,6 +3,7 @@ describe("jxCodeRegexParser module", function() {
 
    J.setBaseUrl('/base/');
 
+   // tokenizer tests
    it('can tokenize Regular Expression and auto append concatenate operator ' +
       'to resulting tokens',
       function (done) {
@@ -108,5 +109,43 @@ describe("jxCodeRegexParser module", function() {
          });
       });
 
+   // parser tests
+   it ('can generate postfix lexemes from parsing Regular Expression tokens',
+      function (done) {
+         J.use('jxCodeRegexParser', function (Parser) {
+            var subject = /a{,1}b{10,}c{20}e{Name}{Delimiter}/,
+               parser = new Parser(subject),
+               tokens = [
+                  ['literal', 'a'],
+                  ['{}', ',1'],
+                  ['literal', 'b'],
+                  ['{}', '10,'],
+                  ['.', '.'],
+                  ['literal', 'c'],
+                  ['{}', '20'],
+                  ['.', '.'],
+                  ['literal', 'e'],
+                  ['.', '.'],
+                  ['ref', 'Name'],
+                  ['.', '.'],
+                  ['ref', 'Delimiter'],
+                  ['.', '.'],
+                  ['$', '']
+               ],
+               c = 0;
+
+            var token, match;
+
+            for (; token = parser.next(); c++) {
+               match = tokens[c];
+               expect(token[0]).toBe(match[0]);
+               expect(token[1]).toBe(match[1]);
+            }
+
+            expect(token !== false).toBe(true);
+            done();
+         });
+
+      });
 
 });
