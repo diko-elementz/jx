@@ -7,17 +7,162 @@ if (typeof require != 'undefined') {
 Jx.setBaseUrl('../source/');
 
 
-Jx.use('jxCodeRegexParser', function (Parser) {
 
-   //var parser = new Parser(/[a-z0-9]+[^ab\+\u00f1\xf1]\u00f1\xf1a/);
+//Jx.use('jxCodeTokenizerProvider', function (Provider) {
+//
+//   var provider = new Provider();
+//
+//   provider.define(
+//      "TOKEN",    /ab/
+//      );
+//
+//   window.p = provider;
+//
+//   console.log(provider);
+//
+//
+//});
 
-   var parser = new Parser(/ab(de)*/);
-   //var parser = new Parser(/[\u00f1\xf1]/);
 
-   window.p = parser;
-   //console.log(parser.next());
+Jx.use('jxCodeTokenizer', function (Tokenizer) {
+
+   var tokenizer = new Tokenizer();
+   var token, c, parsed = [], iteration = 12;
+
+   var definition = [
+         "A",        /a+|b/,
+         "B",        /b+|a/
+
+      ];
+
+
+
+   tokenizer.define(definition);
+   //console.log(tokenizer.provider);
+   window.t = tokenizer;
+   //console.log(t.exportTo());
+
+   tokenizer.set('ababbbbbaab');
+
+   c = 0;
+   for (; token = tokenizer.find(c);) {
+      console.log(token);
+      c = token[2];
+   }
+
+
+   //var definition = [
+   //      "A",         /(a+|b)c/
+   //   ];
+   //
+   //
+   //
+   //tokenizer.define(definition);
+   //tokenizer.set('acbcaacbc');
+   //
+   //c = 0;
+   //for (; token = tokenizer.find(c);) {
+   //   console.log(token);
+   //   c = token[2];
+   //}
+   //
+   //window.t = tokenizer;
+
+
+   //console.profile('define');
+   //tokenizer.define([
+   //      "COMBO",    /x({AB})t/, ['start(', 1, ')end'],
+   //      "AB",       /ast/,
+   //                  /axt/
+   //   ]);
+   //console.profileEnd();
+   //
+   ////tokenizer.set('');
+   //tokenizer.set('axx');
+   //console.profile('tokenize');
+   //console.log(tokenizer.find(0));
+   //console.profileEnd();
+   //console.log(tokenizer.provider);
+   //console.log(tokenizer.provider.exportTo());
+   //
+   //console.log(token);
+   //console.log(tokenizer.find.toString());
+
+   //console.profile('define');
+   //tokenizer.define([
+   //      //"BC",    /x/,  [' x(', 0, ')'],
+   //      //         /xc/,  [' xc(', 0, ')'],
+   //      //"ABC",    /ab/,  [' ab(', 0, ')'],
+   //      //         /a*c/,  [' a*c(', 0, ')']
+   //      //'STRING',   /\"([^\"]+\\")\"/, [0]
+   //      'STRING',   /\"([^\"]+|(\\\")+)\"/, [1],
+   //                  /\'([^\']+|(\\\')+)\'/, [1],
+   //
+   //      'SPACE',    / +/,
+   //                  /[\r\n\t]+/,
+   //
+   //      'WORD',     /[a-z]+/
+   //
+   //   ]);
+   //console.profileEnd();
+   //
+   //tokenizer.set('"quote\\\"diko " \'another \\\' inner quote \\\' string\' test ko noh');
+   //
+   //window.t = tokenizer;
+   //
+   //console.profile('tokenize');
+   //
+   //for (c = 0; token = tokenizer.find(c);) {
+   //   c = token[2];
+   //   parsed[parsed.length] = token[0] + ': ' + token[1];
+   //
+   //   //console.log('------------------------found: ', token[0], '=', token[1], ' next : ', c);
+   //}
+   //console.profileEnd();
+   //console.log(parsed);
+   //
+   //console.profile('single tokenize');
+   //tokenizer.next(0);
+   //console.profileEnd();
+   //
+   //console.log(parsed);
+
+   //console.log(tokenizer);
+
+   //console.profile();
+   //token = tokenizer.next();
+   //console.profileEnd();
+   //
+   //console.log('next: ', token);
+   //
+   //console.profile();
+   //token = (function () {
+   //   tokenizer.str.match(/a*c/);
+   //})();
+   //console.profileEnd();
+
+
+
 
 });
+
+
+
+
+
+
+
+//Jx.use('jxCodeRegexParser', function (Parser) {
+//
+//   //var parser = new Parser(/[a-z0-9]+[^ab\+\u00f1\xf1]\u00f1\xf1a/);
+//
+//   var parser = new Parser(/ab(de)*/);
+//   //var parser = new Parser(/[\u00f1\xf1]/);
+//
+//   window.p = parser;
+//   //console.log(parser.next());
+//
+//});
 
 
 /*

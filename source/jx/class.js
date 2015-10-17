@@ -2,9 +2,10 @@
 
 Jx('jx', 'jxExtensions', function (Jx) {
 
-    var O = Object;
-    var BASE_CONSTRUCTOR_NAME = 'onconstruct';
-    var exports = this.exports;
+    var O = Object,
+        BASE_CONSTRUCTOR_NAME = 'onconstruct',
+        AUGMENTABLE_RE = /this\.\$super/,
+        exports = this.exports;
 
     function empty() {
     }
@@ -13,42 +14,55 @@ Jx('jx', 'jxExtensions', function (Jx) {
 
         var toString = Object.prototype.toString,
             target = this.$superclass;
-        var current, superMethod;
+        var current, superMethod, isConstructor;
 
         if (obj.hasOwnProperty(name)) {
 
-            if (toString.call(value) == '[object Function]') {
+            if (toString.call(value) === '[object Function]') {
+                isConstructor = name === 'constructor';
 
-                if (name == 'constructor') {
-                    name = BASE_CONSTRUCTOR_NAME;
-                    superMethod = function (args) {
-                        return (name in target ?
-                                target[name] :
-                                target.constructor
-                            ).apply(this, args || []);
+                if (name in target &&
+                    (isConstructor || AUGMENTABLE_RE.test(value.toString()))
+                ) {
 
+                    if (isConstructor) {
+                        name = BASE_CONSTRUCTOR_NAME;
+                        superMethod = function (args) {
+                            return (name in target ?
+                                    target[name] :
+                                    target.constructor
+                                ).apply(this, args || []);
+
+                        };
+
+                    }
+                    else {
+                        superMethod = function (args) {
+                            return name in target ?
+                                    target[name].apply(this, args || []) :
+                                    void(0);
+
+                        };
+                    }
+
+                    current = value;
+                    value = function () {
+                        var oldParent = this.$super;
+                        var result;
+
+                        this.$super = superMethod;
+                        result = current.apply(this, arguments);
+
+                        if (oldParent) {
+                            this.$super = oldParent;
+                        }
+                        else {
+                            delete this.$super;
+                        }
+
+                        return result;
                     };
-
                 }
-                else {
-                    superMethod = function (args) {
-                        return name in target ?
-                                target[name].apply(this, args || []) : void(0);
-
-                    };
-                }
-
-                current = value;
-                value = function () {
-                    var oldParent = this.$super;
-                    var result;
-
-                    this.$super = superMethod;
-                    result = current.apply(this, arguments);
-                    this.$super = oldParent;
-
-                    return result;
-                };
 
             }
 

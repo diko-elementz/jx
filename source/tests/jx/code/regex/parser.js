@@ -4,6 +4,30 @@ describe("jxCodeRegexParser module", function() {
    J.setBaseUrl('/base/');
 
    // tokenizer tests
+   it('can tokenize Simple one Character Regular Expression',
+      function (done) {
+         J.use('jxCodeRegexParser', function (Parser) {
+            var subject = /a/,
+               parser = new Parser(subject),
+               tokens = [
+                  ['literal', 'a'],
+                  ['$', '']
+               ],
+               c = 0;
+
+            var token, match;
+
+            for (; token = parser.tokenize(); c++) {
+               match = tokens[c];
+               expect(token[0]).toBe(match[0]);
+               expect(token[1]).toBe(match[1]);
+            }
+
+            expect(token !== false).toBe(true);
+            done();
+         });
+      });
+
    it('can tokenize Regular Expression and auto append concatenate operator ' +
       'to resulting tokens',
       function (done) {

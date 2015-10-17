@@ -3,6 +3,7 @@ Jx('jxClass', function (Class) {
 
     var NOT_HEX_RE = /[^0-9a-f]/i,
         RANGE_RE = /^([0-9]+|[0-9]*\,[0-9]+|[0-9]+\,[0-9]*)$/,
+        TOKEN_RE = //g,
         CTRL_CHAR_SEQUENCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
         CTRL_CHAR = {
                 '0': '\0',
@@ -44,62 +45,7 @@ Jx('jxClass', function (Class) {
                 '{}': 3
             };
 
-    function escapeFrom(at, subject) {
-        var S = String,
-            chr = subject.charAt(at++),
-            len = 1,
-            str = '';
-        var index;
-        switch (chr) {
-        // control
-        case 'c':
-            chr = subject.charAt(at++).toUpperCase();
-            index = CTRL_CHAR_SEQUENCE.indexOf(chr);
-            if (index == -1) {
-                str = 'c';
-            }
-            else {
-                str = S.fromCharCode(index + 1);
-                len++;
-            }
-            break;
-        case '0':
-        case 'n':
-        case 'r':
-        case 't':
-        case 'b':
-        case 'f':
-            str = CTRL_CHAR[at];
-            break;
 
-        // hex
-        case 'x':
-            chr = subject.substring(at, at + 2);
-            len = 3;
-            if (NOT_HEX_RE.test(chr)) {
-                len = 0;
-            }
-            else {
-                str = S.fromCharCode(parseInt(chr, 16));
-            }
-            break;
-        // utf-8
-        case 'u':
-            chr = subject.substring(at, at + 4);
-            len = 5;
-            if (NOT_HEX_RE.test(chr)) {
-                len = 0;
-            }
-            else {
-                str = S.fromCharCode(parseInt(chr, 16));
-            }
-            break;
-        // escaped literal
-        default:
-            str = chr;
-        }
-        return len ? [str, len] : false;
-    }
 
     this.exports = Class.extend({
 
@@ -109,36 +55,108 @@ Jx('jxClass', function (Class) {
 
         ended: false,
         tokens: void(0),
-        buffer: void(0),
+        buffer: null,
+        lastBuffer: null,
 
         stack: void(0),
         queue: void(0),
 
         constructor: function (subject) {
-           if (subject instanceof RegExp) {
-              subject = subject.source;
-           }
-           if (typeof subject == 'string') {
-              this.subject = subject;
-           }
-           this.tokens = [];
-           this.buffer = [];
-           this.stack = [];
-           this.queue = [];
+            this.define(subject);
+
+            this.tokens = [];
+            //this.buffer = [];
+            this.stack = [];
+            this.queue = [];
+        },
+
+        escapeFrom: function (at) {
+            var S = String,
+                subject = this.subject,
+                chr = subject[at++],
+                len = 1,
+                str = '';
+            var index;
+            switch (chr) {
+            // control
+            case 'c':
+                chr = subject[at++].toUpperCase();
+                index = CTRL_CHAR_SEQUENCE.indexOf(chr);
+                if (index == -1) {
+                    str = 'c';
+                }
+                else {
+                    str = S.fromCharCode(index + 1);
+                    len++;
+                }
+                break;
+            case '0':
+            case 'n':
+            case 'r':
+            case 't':
+            case 'b':
+            case 'f':
+                str = CTRL_CHAR[at];
+                break;
+
+            // hex
+            case 'x':
+                chr = subject[at] + subject[at + 1];
+                len = 3;
+                if (NOT_HEX_RE.test(chr)) {
+                    len = 0;
+                }
+                else {
+                    str = S.fromCharCode(parseInt(chr, 16));
+                }
+                break;
+            // utf-8
+            case 'u':
+                chr = subject[at] +
+                        subject[at + 1] +
+                        subject[at + 2] +
+                        subject[at + 3];
+                //chr = subject.substring(at, at + 4);
+                len = 5;
+                if (NOT_HEX_RE.test(chr)) {
+                    len = 0;
+                }
+                else {
+                    str = S.fromCharCode(parseInt(chr, 16));
+                }
+                break;
+            // escaped literal
+            default:
+                str = chr;
+            }
+            return len ? [str, len] : false;
+        },
+
+        define: function (subject) {
+            if (subject instanceof RegExp) {
+                subject = subject.source;
+            }
+            if (typeof subject == 'string') {
+                this.subject = Array.prototype.slice.call(subject, 0);
+            }
+            return this;
         },
 
         tokenize: function () {
             var tokens = this.tokens,
                 tl = tokens.length,
-                buffer = this.buffer,
-                bl = buffer.length;
+                buffer = this.buffer;
 
             var subject, chr, str, o, token, strlen, index,
-                len, l, strs, stl, to, c;
+                len, l, strs, stl, from, to, sl, c, buffer, item;
 
-            if (bl) {
-
-                return tokens[tl++] = buffer.shift();
+            if (buffer) {
+                tokens[tl++] = token = buffer.token;
+                this.buffer = buffer = buffer.next;
+                if (!buffer) {
+                    this.lastBuffer = buffer;
+                }
+                return token;
 
             }
             else if (!this.ended) { // tokenize
@@ -147,12 +165,12 @@ Jx('jxClass', function (Class) {
                 index = this.index;
                 token = null;
                 strlen = 1;
-                chr = subject.charAt(index++);
+                chr = subject[index++];
 
                 failed: switch (chr) {
                 // escape?
                 case '\\':
-                    o = escapeFrom(index, subject);
+                    o = this.escapeFrom(index, subject);
                     if (o) {
                         token = 'literal';
                         str = o[0];
@@ -178,22 +196,21 @@ Jx('jxClass', function (Class) {
                 // character sets
                 case '[':
                     token = '[]';
-                    if (subject.charAt(index + 1) == '^') {
-                        token = '[^]';
-                        index++;
-                        strlen++;
-                    }
-
+                    c = index;
                     strs = [];
                     stl = 0;
-                    c = index;
+
+                    if (subject[index] == '^') {
+                        token = '[^]';
+                        index++;
+                    }
 
                     loop: for (l = len - index; l--;) {
-                        chr = subject.charAt(index++);
+                        chr = subject[index++];
                         strlen ++;
                         switch (chr) {
                         case '\\':
-                            o = escapeFrom(index, subject);
+                            o = this.escapeFrom(index, subject);
                             if (!o) {
                                 strlen = 0;
                                 break failed;
@@ -202,6 +219,27 @@ Jx('jxClass', function (Class) {
                             to = o[1];
                             index += to;
                             l -= to;
+                            break;
+                        case '-':   // expand
+                            chr = strs[stl - 1];
+                            o = subject[index++];
+                            if (stl && o) {
+                                l--;
+                                to = o.charCodeAt(0);
+                                from = chr.charCodeAt(0);
+                                if (from > to) {
+                                    from = from - to;
+                                    to = from - to;
+                                    from = from + to;
+                                }
+                                if (from < to) {
+                                    for (sl = to - from; sl--;) {
+                                        strs[stl++] = String.fromCharCode(
+                                                                       ++from
+                                                                    );
+                                    }
+                                }
+                            }
                             break;
                         case ']':
                             break loop;
@@ -220,11 +258,11 @@ Jx('jxClass', function (Class) {
                     c = index;
 
                     loop: for (l = len - index; l--;) {
-                        chr = subject.charAt(index++);
+                        chr = subject[index++];
                         strlen++;
                         switch (chr) {
                         case '\\':
-                            o = escapeFrom(index, subject);
+                            o = this.escapeFrom(index, subject);
                             if (!o) {
                                 strlen = 0;
                                 break failed;
@@ -275,14 +313,37 @@ Jx('jxClass', function (Class) {
 
                         if (o[0] in OPERAND_START_TOKENS &&
                             token in OPERAND_END_TOKENS) {
-                            buffer[bl++] = [token, str];
+                            item = {
+                                token: [token, str],
+                                next: null
+                            };
+                            if (buffer) {
+                                this.lastBuffer.next = item;
+                            }
+                            else {
+                                this.buffer = buffer = item;
+                            }
+                            this.lastBuffer = item;
+                            //buffer[bl++] = [token, str];
                             token = str = '.';
                         }
 
                     }
 
                     if (this.ended) { // append $ token to buffer
-                        buffer[bl++] = ['$', ''];
+                        item = {
+                            token: ['$', ''],
+                            next: null
+                        };
+
+                        if (buffer) {
+                            this.lastBuffer.next = item;
+                        }
+                        else {
+                            this.buffer = item;
+                        }
+                        this.lastBuffer = item;
+                        //buffer[bl++] = ['$', ''];
                     }
 
                     return tokens[tl++] = [token, str];
@@ -309,7 +370,7 @@ Jx('jxClass', function (Class) {
 
             var precedence, s, found;
 
-            if (!ql && !error && (!this.ended || sl)) {
+            if (!ql && !error && (!this.ended || sl || this.buffer)) {
                 loop: for (; token = this.tokenize();) {
                     name = token[0];
                     switch (name) {
@@ -378,19 +439,23 @@ Jx('jxClass', function (Class) {
 
         },
 
-        reset: function () {
-            var list = this.buffer;
-            list.splice(0, list.length);
-            list = this.tokens;
+        reset: function (subject) {
+            var list = this.tokens;
+
             list.splice(0, list.length);
 
             list = this.stack;
             list.splice(0, list.length);
+
             list = this.queue;
             list.splice(0, list.length);
+
+            delete this.buffer;
+            delete this.lastBuffer;
             delete this.index;
             delete this.error;
             delete this.ended;
+            this.define(subject);
         }
 
     });
