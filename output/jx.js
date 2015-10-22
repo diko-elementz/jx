@@ -391,23 +391,66 @@
 
     };
 
-    Jx.use = function (url, callback) {
-        var module;
+    Jx.use = function () {
+        var callback = null,
+            params = [],
+            loaded = 0,
+            loadCount = 0,
+            called = false,
+            arg = arguments,
+            index = {};
 
-        if (url && typeof url == 'string' && callback instanceof Function) {
-            module = resolveModule(url);
+        var l, c, item, loader, module, list;
 
-            if (module) {
-                updateCallback(CALLBACK_USAGE_PRIORITY, module.name,
-                    function (module) {
-                        callback.call(module, module.exports);
-                    });
-                return module;
-
+        for (c = -1, l = arg.length; l--;) {
+            item = arg[++c];
+            if (item instanceof Function) {
+                callback = item;
             }
+            else if (item && typeof item === 'string') {
+                module = resolveModule(item);
+                if (module) {
+                    if (item in index) {
+                        list = index[item];
+                        list[list.length] = c;
+                    }
+                    else {
+                        index[item] = [c];
+                        loadCount++;
+                    }
 
+                    updateCallback(CALLBACK_USAGE_PRIORITY, item,
+                        function (module) {
+                            var name = module.name,
+                                list = index[name],
+                                l = list.length,
+                                exports = module.exports;
+
+                            for (; l--;) {
+                                loaded++;
+                                params[list[l]] = exports;
+                            }
+                            delete index[name];
+                            // call
+                            if (loaded >= loadCount && callback) {
+                                called = true;
+                                callback.apply(Jx, params);
+                            }
+                        });
+
+                }
+                else {
+                    params[c] = void(0);
+                }
+            }
         }
-        return void(0);
+
+        if (!called && loaded >= loadCount && callback) {
+            callback.apply(Jx, params);
+        }
+
+        return Jx;
+
     };
 
     Jx.inline = function (url, callback) {
@@ -445,131 +488,6 @@
     });
 
 })();
-
-Jx.inline("jxClass", function () {'use strict';
-
-Jx('jx', 'jxExtensions', function (Jx) {
-
-    var O = Object,
-        BASE_CONSTRUCTOR_NAME = 'onconstruct',
-        AUGMENTABLE_RE = /this\.\$super/,
-        exports = this.exports;
-
-    function empty() {
-    }
-
-    function assignProperty(value, name, obj) {
-
-        var toString = Object.prototype.toString,
-            target = this.$superclass;
-        var current, superMethod, isConstructor;
-
-        if (obj.hasOwnProperty(name)) {
-
-            if (toString.call(value) === '[object Function]') {
-                isConstructor = name === 'constructor';
-
-                if (name in target &&
-                    (isConstructor || AUGMENTABLE_RE.test(value.toString()))
-                ) {
-
-                    if (isConstructor) {
-                        name = BASE_CONSTRUCTOR_NAME;
-                        superMethod = function (args) {
-                            return (name in target ?
-                                    target[name] :
-                                    target.constructor
-                                ).apply(this, args || []);
-
-                        };
-
-                    }
-                    else {
-                        superMethod = function (args) {
-                            return name in target ?
-                                    target[name].apply(this, args || []) :
-                                    void(0);
-
-                        };
-                    }
-
-                    current = value;
-                    value = function () {
-                        var oldParent = this.$super;
-                        var result;
-
-                        this.$super = superMethod;
-                        result = current.apply(this, arguments);
-
-                        if (oldParent) {
-                            this.$super = oldParent;
-                        }
-                        else {
-                            delete this.$super;
-                        }
-
-                        return result;
-                    };
-                }
-
-            }
-
-            this[name] = value;
-        }
-
-    }
-
-    function extend(properties) {
-        return exports.extend(this, properties);
-    }
-
-    exports.extend = function (SuperClass, properties) {
-        var J = Jx;
-        var Proto, SuperProto, old;
-
-        function Class() {
-            var instance = this;
-
-            if (!(instance instanceof Class)) {
-                instance = createRawInstance(Class.prototype);
-            }
-
-            instance.onconstruct.apply(instance, arguments);
-            return instance;
-
-        }
-
-        if (J.isObject(SuperClass)) {
-            properties = SuperClass;
-            SuperClass = O;
-        }
-
-        if (J.isFunction(SuperClass) && J.isObject(properties)) {
-
-            empty.prototype;
-            empty.prototype = SuperProto = SuperClass.prototype;
-            Class.prototype = Proto = new empty();
-            Proto.constructor = Class;
-
-            Proto.$superclass = SuperClass.prototype;
-            Jx.each(properties, assignProperty, Proto);
-
-            if (!(BASE_CONSTRUCTOR_NAME in Proto)) {
-                Proto.onconstruct = SuperProto.constructor;
-            }
-
-            Class.extend = extend;
-
-            return Class;
-
-        }
-
-        return void(0);
-    };
-
-});
-});
-
 Jx.inline("jxExtensions", function () {'use strict';
 
 Jx('jx', function (J) {
@@ -772,6 +690,130 @@ Jx('jx', function (J) {
 
     // apply to jx
     exports.assign(J, exports);
+
+});
+});
+
+Jx.inline("jxClass", function () {'use strict';
+
+Jx('jx', 'jxExtensions', function (Jx) {
+
+    var O = Object,
+        BASE_CONSTRUCTOR_NAME = 'onconstruct',
+        AUGMENTABLE_RE = /this\.\$super/,
+        exports = this.exports;
+
+    function empty() {
+    }
+
+    function assignProperty(value, name, obj) {
+
+        var toString = Object.prototype.toString,
+            target = this.$superclass;
+        var current, superMethod, isConstructor;
+
+        if (obj.hasOwnProperty(name)) {
+
+            if (toString.call(value) === '[object Function]') {
+                isConstructor = name === 'constructor';
+
+                if (name in target &&
+                    (isConstructor || AUGMENTABLE_RE.test(value.toString()))
+                ) {
+
+                    if (isConstructor) {
+                        name = BASE_CONSTRUCTOR_NAME;
+                        superMethod = function (args) {
+                            return (name in target ?
+                                    target[name] :
+                                    target.constructor
+                                ).apply(this, args || []);
+
+                        };
+
+                    }
+                    else {
+                        superMethod = function (args) {
+                            return name in target ?
+                                    target[name].apply(this, args || []) :
+                                    void(0);
+
+                        };
+                    }
+
+                    current = value;
+                    value = function () {
+                        var oldParent = this.$super;
+                        var result;
+
+                        this.$super = superMethod;
+                        result = current.apply(this, arguments);
+
+                        if (oldParent) {
+                            this.$super = oldParent;
+                        }
+                        else {
+                            delete this.$super;
+                        }
+
+                        return result;
+                    };
+                }
+
+            }
+
+            this[name] = value;
+        }
+
+    }
+
+    function extend(properties) {
+        return exports.extend(this, properties);
+    }
+
+    exports.extend = function (SuperClass, properties) {
+        var J = Jx;
+        var Proto, SuperProto, old;
+
+        function Class() {
+            var instance = this;
+
+            if (!(instance instanceof Class)) {
+                instance = createRawInstance(Class.prototype);
+            }
+
+            instance.onconstruct.apply(instance, arguments);
+            return instance;
+
+        }
+
+        if (J.isObject(SuperClass)) {
+            properties = SuperClass;
+            SuperClass = O;
+        }
+
+        if (J.isFunction(SuperClass) && J.isObject(properties)) {
+
+            empty.prototype;
+            empty.prototype = SuperProto = SuperClass.prototype;
+            Class.prototype = Proto = new empty();
+            Proto.constructor = Class;
+
+            Proto.$superclass = SuperClass.prototype;
+            Jx.each(properties, assignProperty, Proto);
+
+            if (!(BASE_CONSTRUCTOR_NAME in Proto)) {
+                Proto.onconstruct = SuperProto.constructor;
+            }
+
+            Class.extend = extend;
+
+            return Class;
+
+        }
+
+        return void(0);
+    };
 
 });
 });

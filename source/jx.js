@@ -391,23 +391,66 @@
 
     };
 
-    Jx.use = function (url, callback) {
-        var module;
+    Jx.use = function () {
+        var callback = null,
+            params = [],
+            loaded = 0,
+            loadCount = 0,
+            called = false,
+            arg = arguments,
+            index = {};
 
-        if (url && typeof url == 'string' && callback instanceof Function) {
-            module = resolveModule(url);
+        var l, c, item, loader, module, list;
 
-            if (module) {
-                updateCallback(CALLBACK_USAGE_PRIORITY, module.name,
-                    function (module) {
-                        callback.call(module, module.exports);
-                    });
-                return module;
-
+        for (c = -1, l = arg.length; l--;) {
+            item = arg[++c];
+            if (item instanceof Function) {
+                callback = item;
             }
+            else if (item && typeof item === 'string') {
+                module = resolveModule(item);
+                if (module) {
+                    if (item in index) {
+                        list = index[item];
+                        list[list.length] = c;
+                    }
+                    else {
+                        index[item] = [c];
+                        loadCount++;
+                    }
 
+                    updateCallback(CALLBACK_USAGE_PRIORITY, item,
+                        function (module) {
+                            var name = module.name,
+                                list = index[name],
+                                l = list.length,
+                                exports = module.exports;
+
+                            for (; l--;) {
+                                loaded++;
+                                params[list[l]] = exports;
+                            }
+                            delete index[name];
+                            // call
+                            if (loaded >= loadCount && callback) {
+                                called = true;
+                                callback.apply(Jx, params);
+                            }
+                        });
+
+                }
+                else {
+                    params[c] = void(0);
+                }
+            }
         }
-        return void(0);
+
+        if (!called && loaded >= loadCount && callback) {
+            callback.apply(Jx, params);
+        }
+
+        return Jx;
+
     };
 
     Jx.inline = function (url, callback) {
@@ -445,4 +488,3 @@
     });
 
 })();
-

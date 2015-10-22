@@ -23,8 +23,9 @@ Jx.setBaseUrl('../source/');
 //
 //});
 
-
-Jx.use('jxCodeTokenizer', function (Tokenizer) {
+console.profile('load');
+Jx.use('jxCodeTokenizer', 'jxCodeTokenizerProvider', function (Tokenizer) {
+   console.profileEnd();
 
    var tokenizer = new Tokenizer();
    var token, c, parsed = [], iteration = 12;
@@ -140,8 +141,6 @@ Jx.use('jxCodeTokenizer', function (Tokenizer) {
    //   tokenizer.str.match(/a*c/);
    //})();
    //console.profileEnd();
-
-
 
 
 });

@@ -19,6 +19,22 @@ describe("Core jx module", function() {
       });
    });
 
+   it('can load jxClass and jxPromise module and use its exports',
+      function (done) {
+         Jx.use(
+            'jxClass',
+            'jxPromise',
+            function(Class, Promise) {
+               expect(Class.extend instanceof Function).toBe(true);
+
+               expect(Promise.all instanceof Function).toBe(true);
+               expect(Promise.race instanceof Function).toBe(true);
+               expect(Promise.reject instanceof Function).toBe(true);
+               expect(Promise.resolve instanceof Function).toBe(true);
+               done();
+            });
+      });
+
    it('can declare custom inline modules', function (done) {
       Jx.inline('testModule', function () {
          Jx('jxClass', 'jxExtensions', function (Class, Extensions) {
