@@ -80,6 +80,59 @@ describe("jxCodeTokenizer module", function() {
 
       });
 
+   it('can tokenize one or no character',
+
+      function (done) {
+
+         var definition = [
+                  "A",         /a?b/
+               ],
+            subject = 'bababbbbbaab',
+            results = [{
+                  token: "A",
+                  found: "b"
+               },{
+                  token: "A",
+                  found: "ab"
+               },{
+                  token: "A",
+                  found: "ab"
+               },{
+                  token: "A",
+                  found: "b"
+               },{
+                  token: "A",
+                  found: "b"
+               },{
+                  token: "A",
+                  found: "b"
+               },{
+                  token: "A",
+                  found: "b"
+               }];
+
+         J.use('jxCodeTokenizer', function (Tokenizer) {
+            var tokenizer = new Tokenizer(),
+               index = 0,
+               c = 0;
+            var result, token;
+
+            tokenizer.define(definition);
+
+            tokenizer.set(subject);
+
+            for (; token = tokenizer.find(index);) {
+               result = results[c++];
+               expect(result.token === token[0]).toBe(true);
+               expect(result.found === token[1]).toBe(true);
+               index = token[2];
+            }
+            expect(results.length === c).toBe(true);
+            done();
+         });
+
+      });
+
    it('can tokenize repeated characters',
 
       function (done) {
@@ -217,6 +270,49 @@ describe("jxCodeTokenizer module", function() {
          });
 
       });
+
+   it('can tokenize reference tokens',
+
+      function (done) {
+
+         var definition = [
+                  "A",         /a+/,
+                  "B",         /b+{A}b+/
+               ],
+            subject = 'bababbbbbaab',
+            results = [{
+                  token: "B",
+                  found: "bab"
+               },{
+                  token: "A",
+                  found: "a"
+               },{
+                  token: "B",
+                  found: "bbbbbaab"
+               }];
+
+         J.use('jxCodeTokenizer', function (Tokenizer) {
+            var tokenizer = new Tokenizer(),
+               index = 0,
+               c = 0;
+            var result, token;
+
+            tokenizer.define(definition);
+
+            tokenizer.set(subject);
+
+            for (; token = tokenizer.find(index);) {
+               result = results[c++];
+               expect(result.token === token[0]).toBe(true);
+               expect(result.found === token[1]).toBe(true);
+               index = token[2];
+            }
+            expect(results.length === c).toBe(true);
+            done();
+         });
+
+      });
+
 
 
 

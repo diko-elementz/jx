@@ -30,9 +30,8 @@ Jx.use('jxCodeTokenizer', function (Tokenizer) {
    var token, c, parsed = [], iteration = 12;
 
    var definition = [
-         "A",        /a+|b/,
-         "B",        /b+|a/
-
+         "A",         /a+|b/,
+         "B",         /b+|a/
       ];
 
 
@@ -42,6 +41,7 @@ Jx.use('jxCodeTokenizer', function (Tokenizer) {
    window.t = tokenizer;
    //console.log(t.exportTo());
 
+   //tokenizer.set('bababbbbbaab');
    tokenizer.set('ababbbbbaab');
 
    c = 0;

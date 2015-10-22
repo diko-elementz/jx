@@ -218,6 +218,7 @@ Jx('jxClass',
                         }
 
                         end = [pattern.token, value.join(''), c, strlen === c];
+
                      }
 
                      input = null;

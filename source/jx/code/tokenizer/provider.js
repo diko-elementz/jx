@@ -40,7 +40,8 @@ Jx('jxClass', 'jxCodeStateProvider',
                endPattern = void(0),
                refName = '{' + ref + '}';
 
-            var value, lexeme, op1, op2, fragment, pointer, symbol,
+            var value, lexeme, op1, op2, fragment, symbol, pointer, outgoing,
+               notRaw,
                returns, gid, captures, capture,
                list, isSingle, first, last, split,
                repeat, clone, state, l, isType;
@@ -56,14 +57,24 @@ Jx('jxClass', 'jxCodeStateProvider',
                   op2 = operands[--ol];
                   op1 = operands[ol - 1];
 
+                  notRaw = op2.notRaw;
+
                   // join split
                   split = op1.split;
                   pointer = op2.pointer;
+                  outgoing = op2.outgoing;
                   for (; split; split = split.next) {
                      clone = this.clonePointers(pointer);
                      fragment = split.fragment;
                      fragment.lastPointer.next = clone[0];
                      fragment.lastPointer = clone[1];
+                     if (!notRaw) {
+                        outgoing = outgoing.next = {
+                           pointer: clone[0],
+                           last: clone[1],
+                           next: null
+                        };
+                     }
                   }
 
                   // join
@@ -83,12 +94,14 @@ Jx('jxClass', 'jxCodeStateProvider',
                   op2.start = op1.end;
 
                   operands[ol - 1] = {
+                     notRaw: true,
                      start: op1.start,
                      pointer: op1.pointer,
                      lastPointer: op1.lastPointer,
                      end: op2.end,
                      split: op2.split,
                      lastSplit: op2.lastSplit,
+                     outgoing: op2.outgoing,
                      groupStart: op1.groupStart,
                      groupEnd: op2.groupEnd
                   };
@@ -104,6 +117,7 @@ Jx('jxClass', 'jxCodeStateProvider',
                      pointer: op1.pointer,
                      lastPointer: op2.lastPointer,
                      end: op1.end,
+                     outgoing: op1.outgoing || op2.outgoing,
                      split: op1.split || op2.split,
                      lastSplit: op2.lastSplit || op1.lastSplit,
                      groupStart: op1.groupStart || op2.groupStart,
@@ -128,6 +142,11 @@ Jx('jxClass', 'jxCodeStateProvider',
                   if (split) {
                      split.next = op2.split;
                   }
+
+                  // combine outgoing
+                  outgoing = op1.outgoing;
+                  for (; outgoing.next; outgoing = outgoing.next);
+                  outgoing.next = op2.outgoing;
 
                   // concat group
                   list = op1.groupEnd;
@@ -160,6 +179,7 @@ Jx('jxClass', 'jxCodeStateProvider',
                case 'wildcard':
                case 'ref':
                case 'literal':
+                  // TODO: finalize end points to support end pointers
                   pointer = {
                      id: 'pointer' + (++this.sid),
                      symbol: this.createSymbol(lexeme),
@@ -179,7 +199,11 @@ Jx('jxClass', 'jxCodeStateProvider',
                      start: null,
                      end: {
                         state: state,
+                        next: null
+                     },
+                     outgoing: {
                         pointer: pointer,
+                        last: pointer,
                         next: null
                      },
                      split: null,
@@ -212,9 +236,7 @@ Jx('jxClass', 'jxCodeStateProvider',
                   break;
 
                case '$': // ended, postprocess state
-
                   op1 = operands[ol - 1];
-                  this.groupFragment(op1, true);
 
                   // create end pattern
                   patternId = 'pattern' + (++this.pid);
@@ -230,6 +252,7 @@ Jx('jxClass', 'jxCodeStateProvider',
                      list.state.end = endPattern;
                   }
 
+                  // TODO: add group
                   // end splits
                   split = op1.split;
                   for (; split; split = split.next) {
@@ -239,6 +262,8 @@ Jx('jxClass', 'jxCodeStateProvider',
                         list.state.end = endPattern;
                      }
                   }
+
+                  this.groupFragment(op1, true);
 
                   // create capture
                   captures = [];
@@ -335,14 +360,27 @@ Jx('jxClass', 'jxCodeStateProvider',
          },
 
          repeatFragment: function (fragment) {
-            var list = fragment.end;
+            var list = fragment.end,
+               outgoing = fragment.outgoing;
             var clone, pointer, state;
             pointer = fragment.pointer;
+
+            if (!outgoing) {
+               console.log('no outgoing? ', fragment);
+            }
+
+            for (; outgoing.next; outogoing = outgoing.next);
+
             for (; list; list = list.next) {
                clone = this.clonePointers(pointer);
                state = list.state;
                clone[1].next = state.pointer;
                state.pointer = clone[0];
+               outgoing = outgoing.next = {
+                  pointer: clone[0],
+                  last: clone[1],
+                  next: null
+               };
             }
          },
 
@@ -351,7 +389,7 @@ Jx('jxClass', 'jxCodeStateProvider',
                start = fragment.groupStart,
                end = fragment.groupEnd;
 
-            var pointer, list, group;
+            var pointer, list, group, end, endList;
 
             // setup group start
             fragment.groupStart = group = {
@@ -374,26 +412,77 @@ Jx('jxClass', 'jxCodeStateProvider',
             }
 
             // setup end pointers
-            list = fragment.end;
+            list = fragment.outgoing;
             for (; list; list = list.next) {
                pointer = list.pointer;
-
-               for (; pointer; pointer = pointer.next) {
+               end = list.end;
+               for (; pointer && pointer !== end; pointer = pointer.next) {
                   pointer.end = {
                      id: id,
                      next: pointer.end
                   };
                }
-               //if (ended === true) { // apply last pointers as end
-                  pointer = list.state.pointer;
-                  for (; pointer; pointer = pointer.next) {
+            }
+
+            if (ended === true) { // apply last pointers as end in split
+               list = fragment.split;
+               for (; list; list = list.next) {
+                  endList = list.fragment.outgoing;
+                  pointer = endList.pointer;
+                  end = endList.end;
+                  for (; pointer && pointer !== end; pointer = pointer.next) {
                      pointer.end = {
                         id: id,
                         next: pointer.end
                      };
                   }
-               //}
+               }
             }
+
+            // setup end pointers
+            //list = fragment.end;
+            //for (; list; list = list.next) {
+            //   pointer = list.pointer;
+            //
+            //   for (; pointer; pointer = pointer.next) {
+            //      pointer.end = {
+            //         id: id,
+            //         next: pointer.end
+            //      };
+            //   }
+            //
+            //   pointer = list.state.pointer;
+            //   for (; pointer; pointer = pointer.next) {
+            //      pointer.end = {
+            //         id: id,
+            //         next: pointer.end
+            //      };
+            //   }
+            //}
+
+            // add end group to split if end
+            //if (ended === true) { // apply last pointers as end
+            //   list = fragment.split;
+            //   for (; list; list = list.next) {
+            //      end = split.fragment.end;
+            //      if (end) {
+            //         pointer = end.pointer;
+            //         console.log('adding end group: ', id, ' to: ', pointer);
+            //         for (; pointer; pointer = pointer.next) {
+            //            pointer.end = {
+            //               id: id,
+            //               next: pointer.end
+            //            };
+            //         }
+            //      }
+            //
+            //      //fragment = split.fragment;
+            //      //list = fragment.start;
+            //      //for (; list; list = list.next) {
+            //      //   list.state.end = endPattern;
+            //      //}
+            //   }
+            //}
 
             return fragment;
          },
