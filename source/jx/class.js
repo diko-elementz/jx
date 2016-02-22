@@ -75,48 +75,69 @@ Jx('jx', 'jxExtensions', function (Jx) {
         return exports.extend(this, properties);
     }
 
-    exports.extend = function (SuperClass, properties) {
-        var J = Jx;
-        var Proto, SuperProto, old;
+    Jx.assign(exports, {
 
-        function Class() {
-            var instance = this;
+        'extend': function (SuperClass, properties) {
+            var J = Jx,
+                E = empty;
+            var Proto, SuperProto, old;
 
-            if (!(instance instanceof Class)) {
-                instance = createRawInstance(Class.prototype);
+            function Class() {
+                var instance = this;
+
+                if (!(instance instanceof Class)) {
+                    E.prototype = Class.prototype;
+                    instance = new E();
+                }
+
+                instance.onconstruct.apply(instance, arguments);
+                return instance;
+
             }
 
-            instance.onconstruct.apply(instance, arguments);
-            return instance;
-
-        }
-
-        if (J.isObject(SuperClass)) {
-            properties = SuperClass;
-            SuperClass = O;
-        }
-
-        if (J.isFunction(SuperClass) && J.isObject(properties)) {
-
-            empty.prototype;
-            empty.prototype = SuperProto = SuperClass.prototype;
-            Class.prototype = Proto = new empty();
-            Proto.constructor = Class;
-
-            Proto.$superclass = SuperClass.prototype;
-            Jx.each(properties, assignProperty, Proto);
-
-            if (!(BASE_CONSTRUCTOR_NAME in Proto)) {
-                Proto.onconstruct = SuperProto.constructor;
+            if (J.isObject(SuperClass)) {
+                properties = SuperClass;
+                SuperClass = O;
             }
 
-            Class.extend = extend;
+            if (J.isFunction(SuperClass) && J.isObject(properties)) {
 
-            return Class;
+                E.prototype = SuperProto = SuperClass.prototype;
+                Class.prototype = Proto = new E();
+                Proto.constructor = Class;
 
+                Proto.$superclass = SuperClass.prototype;
+                Jx.each(properties, assignProperty, Proto);
+
+                if (!(BASE_CONSTRUCTOR_NAME in Proto)) {
+                    Proto.onconstruct = SuperProto.constructor;
+                }
+
+                Class.extend = extend;
+
+                return Class;
+
+            }
+
+            return void(0);
+        },
+
+        'singleton': function (SuperClass, properties) {
+            var Class = exports.extend.apply(exports, arguments);
+            var params;
+
+            if (Class) {
+                params = arguments[arguments.length - 1];
+
+                if (!(params instanceof Array)) {
+                    params = [];
+                }
+
+                return Class.apply(null, params);
+            }
+
+            return void(0);
         }
-
-        return void(0);
-    };
+    });
 
 });

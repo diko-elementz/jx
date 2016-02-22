@@ -7,6 +7,8 @@ Jx('jxClass',
 
    function(Class, Provider) {
 
+      // TODO: fix errors in captures
+
 
       this.exports = Class.extend({
 
@@ -196,6 +198,7 @@ Jx('jxClass',
                         value = [];
                         vl = 0;
                         capture = pattern.captures;
+
                         for (; capture; capture = capture.next) {
                            captureId = capture.id;
                            if (captureId in constants) {

@@ -1,9 +1,9 @@
+'use strict';
 
 Jx('jxClass', function (Class) {
 
     var NOT_HEX_RE = /[^0-9a-f]/i,
         RANGE_RE = /^([0-9]+|[0-9]*\,[0-9]+|[0-9]+\,[0-9]*)$/,
-        TOKEN_RE = //g,
         CTRL_CHAR_SEQUENCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
         CTRL_CHAR = {
                 '0': '\0',
@@ -37,15 +37,13 @@ Jx('jxClass', function (Class) {
         OPERATOR_PRECEDENCE = {
                 '(': 0,
                 ')': 0,
-                '.': 1,
-                '|': 2,
+                '|': 1,
+                '.': 2,
                 '?': 3,
                 '*': 3,
                 '+': 3,
                 '{}': 3
             };
-
-
 
     this.exports = Class.extend({
 

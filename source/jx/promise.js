@@ -1,6 +1,6 @@
 'use strict';
 
-Jx('jx', 'jxClass', function (Jx, Class) {
+Jx(function () {
 
     var GLOBAL = Jx.GLOBAL,
         EXEC_PENDING = 1,
@@ -296,7 +296,8 @@ Jx('jx', 'jxClass', function (Jx, Class) {
                                 data = e;
                                 resolved = false;
                             }
-                        } else {
+                        }
+                        else {
                             try {
                                 onReject.call(null,
                                     data);
@@ -307,10 +308,12 @@ Jx('jx', 'jxClass', function (Jx, Class) {
                         }
                         if (!resolved) {
                             reject(data);
-                        } else if (isThenable(data)) {
+                        }
+                        else if (isThenable(data)) {
                             data.then(resolve,
                                 reject);
-                        } else {
+                        }
+                        else {
                             resolve(data);
                         }
                     });

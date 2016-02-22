@@ -93,28 +93,28 @@
             var l, callbacks;
 
             switch (current) {
-                case SCRIPT_UNINITIALIZED: // load when uninitialized
-                    current = SCRIPT_LOADING;
-                    module.modulesToLoad++;
-                    load(module, function (module) {
-                        module.modulesToLoad--;
-                        updateState(module);
-                    });
-                    break;
-                case SCRIPT_LOADING:
-                    if (!module.modulesToLoad) {
-                        current = SCRIPT_LOADED;
-                    }
-                    break;
-                case SCRIPT_LOADED:
-                    // shift to RESOLVED only if exports is defined
-                    module.status = current = SCRIPT_RESOLVED;
-                    callbacks = module.callbacks;
-                    for (; callbacks.length;) {
-                        callbacks.shift()(module);
-                    }
+            case SCRIPT_UNINITIALIZED: // load when uninitialized
+                current = SCRIPT_LOADING;
+                module.modulesToLoad++;
+                load(module, function (module) {
+                    module.modulesToLoad--;
+                    updateState(module);
+                });
+                break;
+            case SCRIPT_LOADING:
+                if (!module.modulesToLoad) {
+                    current = SCRIPT_LOADED;
+                }
+                break;
+            case SCRIPT_LOADED:
+                // shift to RESOLVED only if exports is defined
+                module.status = current = SCRIPT_RESOLVED;
+                callbacks = module.callbacks;
+                for (; callbacks.length;) {
+                    callbacks.shift()(module);
+                }
 
-                    break;
+                break;
             }
 
             return module.status = current;
@@ -180,8 +180,8 @@
         return;
     }
 
-    if ('global' in GLOBAL && 'process' in GLOBAL && GLOBAL.global ===
-        GLOBAL) {
+    if ('global' in GLOBAL && 'process' in GLOBAL &&
+        GLOBAL.global === GLOBAL) {
 
         currentPlatform = PLATFORM_NODEJS;
 
@@ -245,122 +245,122 @@
     };
 
     switch (currentPlatform) {
-        case PLATFORM_NODEJS:
-            Jx.platform = 'nodejs';
+    case PLATFORM_NODEJS:
+        Jx.platform = 'nodejs';
 
-            configureBaseUrl = function (url) {
-                var path = require('path');
+        configureBaseUrl = function (url) {
+            var path = require('path');
 
-                if (url && typeof url == 'string') {
-                    url = path.normalize(
-                        path.dirname(require.main.filename) +
-                        (url ? '/' + url : ''));
-                    baseUrl = url + (url.charAt(url.length - 1) != '/' ?
-                        '/' : '');
+            if (url && typeof url == 'string') {
+                url = path.normalize(
+                    path.dirname(require.main.filename) +
+                    (url ? '/' + url : ''));
+                baseUrl = url + (url.charAt(url.length - 1) != '/' ?
+                    '/' : '');
 
-                }
-                return baseUrl;
-            };
+            }
+            return baseUrl;
+        };
 
-            load = function (module, callback) {
-                var J = Jx,
-                    old = currentScope,
-                    path = require('path');
+        load = function (module, callback) {
+            var J = Jx,
+                old = currentScope,
+                path = require('path');
 
+            currentScope = module;
+            require(module.path);
+            currentScope = old;
+            callback(module);
+
+        };
+
+        exports = Jx;
+        break;
+    default:
+        Jx.platform = 'browser';
+        configureBaseUrl = function (url) {
+            if (url && typeof url == 'string') {
+                baseUrl = url + (url.charAt(url.length - 1) != '/' ?
+                    '/' : '');
+            }
+            return baseUrl;
+        };
+
+        load = function (module, callback) {
+            var list = load.scripts,
+                xhr = new XMLHttpRequest;
+
+            // preload
+            xhr.open('GET', module.path, true);
+            xhr.send(null);
+            xhr = null;
+
+            // actual bulk load
+            list[list.length] = [module, callback];
+
+            // start bulk load if not yet started
+            load.bulkLoad();
+        };
+
+        load.isLoading = false;
+
+        load.scripts = [];
+
+        load.bulkLoad = function () {
+            var list = load.scripts,
+                J = Jx,
+                l = list.length;
+
+            var current, module, old;
+
+            if (!load.isLoading && l) {
+
+                current = list.splice(0, 1)[0];
+                load.isLoading = true;
+
+                module = current[0];
+                old = currentScope;
                 currentScope = module;
-                require(module.path);
-                currentScope = old;
-                callback(module);
 
-            };
+                load.request(module,
+                    function (module) {
+                        current[1](module);
+                        currentScope = old;
+                        load.isLoading = false;
+                        load.bulkLoad();
+                    });
 
-            exports = Jx;
-            break;
-        default:
-            Jx.platform = 'browser';
-            configureBaseUrl = function (url) {
-                if (url && typeof url == 'string') {
-                    baseUrl = url + (url.charAt(url.length - 1) != '/' ?
-                        '/' : '');
+            }
+
+        };
+
+        load.request = function (currentModule, callback) {
+            var doc = document,
+                script = doc.createElement('script'),
+                type = 'onload';
+
+            script.type = 'text/javascript';
+            script.src = currentModule.path;
+
+            if (script.readyState) {
+                type = 'onreadystatechange';
+            }
+
+            script[type] = function (evt) {
+                var script = (evt || window.event).target;
+                if (type == 'onload' || script.readyState ==
+                    'complete') {
+                    script[type] = null;
+                    callback(currentModule);
                 }
-                return baseUrl;
-            };
-
-            load = function (module, callback) {
-                var list = load.scripts,
-                    xhr = new XMLHttpRequest;
-
-                // preload
-                xhr.open('GET', module.path, true);
-                xhr.send(null);
-                xhr = null;
-
-                // actual bulk load
-                list[list.length] = [module, callback];
-
-                // start bulk load if not yet started
-                load.bulkLoad();
-            };
-
-            load.isLoading = false;
-
-            load.scripts = [];
-
-            load.bulkLoad = function () {
-                var list = load.scripts,
-                    J = Jx,
-                    l = list.length;
-
-                var current, module, old;
-
-                if (!load.isLoading && l) {
-
-                    current = list.splice(0, 1)[0];
-                    load.isLoading = true;
-
-                    module = current[0];
-                    old = currentScope;
-                    currentScope = module;
-
-                    load.request(module,
-                        function (module) {
-                            current[1](module);
-                            currentScope = old;
-                            load.isLoading = false;
-                            load.bulkLoad();
-                        });
-
-                }
-
-            };
-
-            load.request = function (currentModule, callback) {
-                var doc = document,
-                    script = doc.createElement('script'),
-                    type = 'onload';
-
-                script.type = 'text/javascript';
-                script.src = currentModule.path;
-
-                if (script.readyState) {
-                    type = 'onreadystatechange';
-                }
-
-                script[type] = function (evt) {
-                    var script = (evt || window.event).target;
-                    if (type == 'onload' || script.readyState ==
-                        'complete') {
-                        script[type] = null;
-                        callback(currentModule);
-                    }
-                    script = null;
-                };
-
-                doc.getElementsByTagName('head')[0].appendChild(script);
-
                 script = null;
-                doc = null;
             };
+
+            doc.getElementsByTagName('head')[0].appendChild(script);
+
+            script = null;
+            doc = null;
+        };
     }
 
     Jx.setBaseUrl = configureBaseUrl;
@@ -462,17 +462,17 @@
             if (module) {
 
                 switch (module.status) {
-                    case SCRIPT_UNINITIALIZED:
-                        module.status = SCRIPT_RESOLVED;
-                    case SCRIPT_RESOLVED:
-                        old = currentScope;
-                        currentScope = module;
-                        callback.call(module, module.exports);
-                        currentScope = old;
-                        break;
-                    default:
-                        Jx.use(module.name, callback);
-                        break;
+                case SCRIPT_UNINITIALIZED:
+                    module.status = SCRIPT_RESOLVED;
+                case SCRIPT_RESOLVED:
+                    old = currentScope;
+                    currentScope = module;
+                    callback.call(module, module.exports);
+                    currentScope = old;
+                    break;
+                default:
+                    Jx.use(module.name, callback);
+                    break;
                 }
 
                 return module;
